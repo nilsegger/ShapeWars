@@ -6,10 +6,13 @@ typedef struct {
 } Position, Size, Velocity;
 
 typedef struct {
-    int top_left;
-    int top_right;
-    int bot_left;
-    int bot_right;
+
+	int top_left;
+	int top_right;
+	int bottom_left;
+	int bottom_right;
+
 } CellLocation;
+
 
 #endif // INCLUDE_STRUCTS_H
