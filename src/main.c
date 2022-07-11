@@ -1,163 +1,125 @@
 ﻿#include <stdio.h>
 #include <stdlib.h>
 
-#include <flecs.h>
 #include <raylib.h>
 
 #include "helpers.h"
 #include "structs.h"
 #include "cells.h"
 
+#define ENTITES 2000
+
+typedef enum {
+    None,
+    Walks 
+} EntityType;
+
 void initialise_window();
 void display_fps();
-void create_random_entities(ecs_world_t* world, ecs_entity_t* cells, int n);
-
-/*
-    Works only if each troop is always inside maximum 4 cells
-
-
-    Cells: Height + Width
-    ROWS: MAP_HEIGHT / CELL_HEIGHT
-    COLS: MAP_WIDTH / CELL_WIDTH
-
-    CELL_ROW: floor(INDEX / COLS)
-    CELL_COL_INDEX = index - (CELL_ROW * COLS);
-
-    1. Layout basic grid n: MAP_WIDTH / CELL_WIDTH * MAP_HEIGHT / CELL_HEIGTH
-    
-    CELL_INDEX = floor(POSITION.Y / CELL_HEIGHT) + floor(POSITION.X  / CELL_WIDTH)
-
-
-    CellLocation in which Cell each troop is, -1 is not in any
-    Cell entity saves childs for iter
-
-    All troops in cell? iterate children
-    In which cell is troop? calculate index via position of all 4 corners
-*/
-
-void Move(ecs_iter_t* it) {
-    Position* p = ecs_term(it, Position, 1);
-    Size* s = ecs_term(it, Size, 2);
-    Velocity* v = ecs_term(it, Velocity, 3);
-    CellLocation* l = ecs_term(it, CellLocation, 4);
-
-    char* type_str = ecs_table_str(it->world, it->table);
-    ecs_os_free(type_str);
-
-    for (int i = 0; i < it->count; i++) {
-        p[i].x += v[i].x * it->delta_time;
-        p[i].y += v[i].y * it->delta_time;
-
-        cells_track_entity(it->world, it->ctx, it->entities[i], &p[i], &s[i], &l[i]);
-
-        bool change_x = p[i].x < 0.0f || p[i].x + s[i].x > MAP_WIDTH;
-        if(change_x) {
-            v[i].x *= -1;
-        }
-        bool change_y = p[i].y < 0.0f || p[i].y + s[i].y > MAP_HEIGHT;
-		if(change_y) {
-            v[i].y *= -1;
-        }
-	}
-}
-
-void DrawBoxes(ecs_iter_t* it) {
-	Position* p = ecs_term(it, Position, 1);
-    Size* s = ecs_term(it, Size, 2);
-    CellLocation* l = ecs_term(it, CellLocation, 3);
-    Color* c = ecs_term(it, Color, 4);
-
-    char* type_str = ecs_table_str(it->world, it->table);
-    ecs_os_free(type_str);
-
-    for (int i = 0; i < it->count; i++) {
-        DrawRectangle(p[i].x * WORLD_TO_SCREEN, p[i].y * WORLD_TO_SCREEN, s[i].x * WORLD_TO_SCREEN, s[i].y * WORLD_TO_SCREEN, c[i]);
-
-        draw_cell(l[i].top_left);
-        if(cell_tracker_top_right_unique(&l[i]))
-			draw_cell(l[i].top_right);
-        if(cell_tracker_bottom_left_unique(&l[i]))
-			draw_cell(l[i].bottom_left);
-        if(cell_tracker_bottom_right_unique(&l[i]))
-			draw_cell(l[i].bottom_right);
-
-	}
-}
+void init_entities(EntityType* type, Position* position, Size* size, Velocity* velocity, Color* color);
+void draw_number(int posX, int posY, int size, int n);
 
 int main(void)
 {
-
-    /* Create the world */
-    ecs_world_t* world = ecs_init();
-
-    /* Register components */
-	ECS_COMPONENT(world, Position);
-	ECS_COMPONENT(world, Size);
-	ECS_COMPONENT(world, Velocity);
-	ECS_COMPONENT(world, CellLocation);
-	ECS_COMPONENT(world, Color);
-
-    ecs_entity_t cells[CELLS_COUNT];
-	initialise_cells(world, cells);
-    printf("Created %d cells.\n", CELLS_COUNT);
-
-        /* Register system */
-    ECS_SYSTEM(world, Move, EcsOnUpdate, Position, Size, Velocity, CellLocation);
-    ECS_SYSTEM(world, DrawBoxes, EcsPostUpdate, Position, Size, CellLocation, Color);
-
-    ecs_system_init(world, &(ecs_system_desc_t) {
-        .entity = { .name = "Move"},
-            .ctx = cells
-    });
-
-    create_random_entities(world, cells, 1000);
-
-    /*ecs_system_init(world, &(ecs_system_init_t) {
-        .entity = {Move},
-		.ctx = cells
-    });*/
-
     initialise_window();
+
+    cell_t cells[CELLS_COUNT];
+    for (int i = 0; i < CELLS_COUNT; i++) {
+        cells[i].n = 0;
+    }
+
+    EntityType type[ENTITES];
+    Position position[ENTITES];
+    Size size[ENTITES];
+    Velocity velocity[ENTITES];
+    Color color[ENTITES];
+    Location location[ENTITES];
+
+    init_entities(type, position, size, velocity, color);
+
+    for (int i = 0; i < ENTITES; i++) {
+        cells_begin_track_entity(cells, i, &position[i], &size[i], &location[i]);
+    }
     
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
         float deltaTime = GetFrameTime();
 
-		ecs_progress(world, deltaTime);
+        // move entity
+        // Track entity
+        //draw entity
+
+        if (IsKeyDown(32) || IsKeyPressed(83)) {
+
+            for (entity_id_t i = 0; i < ENTITES; i++) {
+
+                position[i].x += velocity[i].x * deltaTime;
+                position[i].y += velocity[i].y * deltaTime;
+
+                if (position[i].x + size[i].x > MAP_WIDTH) {
+                    position[i].x = MAP_WIDTH - size[i].x;
+                    velocity[i].x *= -1;
+                }
+
+                if (position[i].x < 0.0f) {
+                    position[i].x = 0.0f;
+                    velocity[i].x *= -1;
+                }
+
+                if (position[i].y + size[i].y > MAP_HEIGHT) {
+                    position[i].y = MAP_HEIGHT - size[i].y;
+                    velocity[i].y *= -1;
+                }
+
+                if (position[i].y < 0.0f) {
+                    position[i].y = 0.0f;
+                    velocity[i].y *= -1;
+                }
+
+                cells_track_entity(cells, i, &position[i], &size[i], &location[i]);
+            }
+        }
+
+        for (int i = 0; i < ENTITES; i++) {
+			DrawRectangle(position[i].x * WORLD_TO_SCREEN, position[i].y * WORLD_TO_SCREEN, size[i].x * WORLD_TO_SCREEN, size[i].y * WORLD_TO_SCREEN, color[i]);
+        }
+
+        for (int i = 0; i < CELLS_COUNT; i++) {
+            if (cells[i].n == 0) continue;
+            Position cp = cell_position(i);
+            int alpha = (int)(255.0f / (float)MAX_ENTITES_PER_CELL * (float)cells[i].n);
+            Color color = { 255.0f, 0, 0, max(alpha, 50.0f)};
+            DrawRectangleLines(cp.x * WORLD_TO_SCREEN, cp.y * WORLD_TO_SCREEN, CELL_WIDTH * WORLD_TO_SCREEN, CELL_HEIGHT * WORLD_TO_SCREEN, color);
+            draw_number(cp.x * WORLD_TO_SCREEN, cp.y * WORLD_TO_SCREEN, 10, cells[i].n);
+        }
 
         display_fps();
         EndDrawing();
     }
     CloseWindow();
-    return ecs_fini(world);
+    return 0;
 }
 
-int random(int min, int max) {
-    return min + rand() / (RAND_MAX / (max - min + 1) + 1);
-}
+void init_entities(EntityType* type, Position* position, Size* size, Velocity* velocity, Color* color) {
+    for (int i = 0; i < ENTITES; i++) {
+        type[i] = Walks;
 
-void create_random_entities(ecs_world_t* world, ecs_entity_t* cells, int n) {
-	ECS_COMPONENT(world, Position);
-	ECS_COMPONENT(world, Size);
-	ECS_COMPONENT(world, Velocity);
-	ECS_COMPONENT(world, CellLocation);
-	ECS_COMPONENT(world, Color);
+		size[i].x = random(2, 6);
+        size[i].y = random(2, 6);
+
+        position[i].x = random(0, MAP_WIDTH - size->x - 5);
+        position[i].y = random(0, MAP_HEIGHT - size->y - 5);
         
-    for (int i = 0; i < n; i++) {
-        srand(i);
+		velocity[i].x = random(0, 30);
+        velocity[i].y = random(0, 30);
 
-        ecs_entity_t e = ecs_new_entity(world, 0);
-        ecs_set(world, e, Position, { random(0, MAP_WIDTH), random(0, MAP_HEIGHT)});
-        ecs_set(world, e, Size, { 5, 5 });
-        ecs_set(world, e, Velocity, { random(0, 50), random(0, 50)});
-        ecs_set(world, e, Color, { random(0, 255), random(0, 255), random(0, 255), 255});
-
-        cells_begin_track_entity(world, cells, e);
-    }
-
+        color[i].a = 255;
+        color[i].r = random(0, 255);
+        color[i].g = random(0, 255);
+        color[i].b = random(0, 255);
+    };
 }
-
 
 void initialise_window() {
 	const int screenHeight = (int)(SCREEN_RATIO * SCREEN_WIDTH);
@@ -169,4 +131,11 @@ void display_fps() {
 	char fps[20];
 	snprintf(fps, 20, "FPS: %d", GetFPS());
 	DrawText(fps, 0, 0, 20, WHITE);
+}
+
+void draw_number(int posX, int posY,  int size, int n) {
+	char number[20];
+	snprintf(number, 20, "%d", n);
+	DrawText(number, posX, posY, size, WHITE);
+
 }

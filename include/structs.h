@@ -12,7 +12,7 @@ typedef struct {
 	int bottom_left;
 	int bottom_right;
 
-} CellLocation;
+} Location;
 
 
 #endif // INCLUDE_STRUCTS_H
