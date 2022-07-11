@@ -10,7 +10,7 @@ add_subdirectory(raylib)
 include_directories("include/")
 
 # Add source to this project's executable.
-add_executable (Shapes "src/main.c"   "include/cells.h" "src/cells.c" "include/structs.h" "include/helpers.h")
+add_executable (Shapes "src/main.c"   "include/cells.h" "src/cells.c" "include/structs.h" "include/helpers.h" "include/collision.h")
 
 target_include_directories(Shapes PRIVATE raylib)
 target_link_libraries(Shapes raylib_static)

@@ -14,5 +14,9 @@ typedef struct {
 
 } Location;
 
+typedef enum {
+    None,
+    Walks 
+} EntityType;
 
 #endif // INCLUDE_STRUCTS_H

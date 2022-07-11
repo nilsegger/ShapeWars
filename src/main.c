@@ -6,13 +6,9 @@
 #include "helpers.h"
 #include "structs.h"
 #include "cells.h"
+#include "collision.h"
 
-#define ENTITES 2000
-
-typedef enum {
-    None,
-    Walks 
-} EntityType;
+#define ENTITES 5 
 
 void initialise_window();
 void display_fps();
@@ -52,7 +48,9 @@ int main(void)
 
         if (IsKeyDown(32) || IsKeyPressed(83)) {
 
-            for (entity_id_t i = 0; i < ENTITES; i++) {
+			for (entity_id_t i = 0; i < ENTITES; i++) {
+
+                Position temporary = {position[i].x, position[i].y};
 
                 position[i].x += velocity[i].x * deltaTime;
                 position[i].y += velocity[i].y * deltaTime;
@@ -62,14 +60,14 @@ int main(void)
                     velocity[i].x *= -1;
                 }
 
+				if (position[i].y + size[i].y > MAP_HEIGHT) {
+                    position[i].y = MAP_HEIGHT - size[i].y;
+                    velocity[i].y *= -1;
+                }
+
                 if (position[i].x < 0.0f) {
                     position[i].x = 0.0f;
                     velocity[i].x *= -1;
-                }
-
-                if (position[i].y + size[i].y > MAP_HEIGHT) {
-                    position[i].y = MAP_HEIGHT - size[i].y;
-                    velocity[i].y *= -1;
                 }
 
                 if (position[i].y < 0.0f) {
@@ -78,6 +76,45 @@ int main(void)
                 }
 
                 cells_track_entity(cells, i, &position[i], &size[i], &location[i]);
+
+                collision_t* collision = find_collision(cells, i, type, position, size, location);
+                if (collision != NULL) {
+
+                    collision_item_t* iter = collision->first;
+                    while (iter != NULL) {
+                        Velocity v = {position[i].x - temporary.x, position[i].y - temporary.y};
+
+                        const offset = 0.001;
+                        if (v.x > 0.0f) {
+                            position[i].x = position[iter->id].x - size[i].x - offset;
+                            velocity[i].x = -abs(velocity[i].x);
+                            velocity[iter->id].x = abs(velocity[iter->id].x);
+                        }
+                        else if (v.x < 0.0f) {
+                            position[i].x = position[iter->id].x + size[iter->id].x + offset;
+							velocity[i].x = abs(velocity[i].x);
+                            velocity[iter->id].x = -abs(velocity[iter->id].x);
+
+                        }
+
+						if (v.y > 0.0f) {
+                            position[i].y = position[iter->id].y - size[i].y - offset;
+							velocity[i].y = -abs(velocity[i].y);
+                            velocity[iter->id].y = abs(velocity[iter->id].y);
+
+                        }
+                        else if (v.y < 0.0f) {
+                            position[i].y = position[iter->id].y + size[iter->id].y + offset;
+							velocity[i].y = abs(velocity[i].y);
+                            velocity[iter->id].y = -abs(velocity[iter->id].y);
+                        }
+
+                        
+                        iter = iter->next;
+                    }
+                    
+                    collision_free(collision);
+                }
             }
         }
 

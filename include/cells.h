@@ -13,7 +13,7 @@
 // Should be max 65536
 #define CELLS_COUNT (MAP_WIDTH / CELL_WIDTH * MAP_HEIGHT / CELL_HEIGHT)
 
-#define MAX_ENTITES_PER_CELL 2000 
+#define MAX_ENTITES_PER_CELL 5 
 
 typedef struct {
 	int n;
@@ -72,11 +72,5 @@ inline bool cell_location_unique(Location* location, int* compareTo) {
 		unique = unique && location->bottom_right != *compareTo;
 	return unique;
 }
-
-
-/*
-uint64_t create_cells_index(uint16_t first, uint16_t second, uint16_t third, uint16_t fourth);
-uint16_t cell_from_cells_int(uint64_t cells_indices, int index);
-*/
 
 #endif // INCLUDE_CELLS_H
