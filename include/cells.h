@@ -13,7 +13,8 @@
 // Should be max 65536
 #define CELLS_COUNT (MAP_WIDTH / CELL_WIDTH * MAP_HEIGHT / CELL_HEIGHT)
 
-#define MAX_ENTITES_PER_CELL 5 
+// THERE IS A BUG WHERE IF MAX_ENTITES_PER_CELL IS BIGGER THAN ENTITES THE PROGRAM WILL CRASH?
+#define MAX_ENTITES_PER_CELL 10 
 
 typedef struct {
 	int n;
@@ -37,21 +38,6 @@ int cell_neighbour_right(int index);
 int cell_neighbour_bottom_left(int index);
 int cell_neighbour_bottom(int index);
 int cell_neighbour_bottom_right(int index);
-
-inline bool cell_location_top_right_unique(Location* location) {
-	return location->top_right != location->top_left;
-}
-
-inline bool cell_location_bottom_left_unique(Location* location) {
-	return location->bottom_left != location->top_left
-		&& location->bottom_left != location->top_right;
-}
-
-inline bool cell_location_bottom_right_unique(Location* location) {
-	return location->bottom_right != location->top_left
-		&& location->bottom_right != location->top_right
-		&& location->bottom_right != location->bottom_left;
-}
 
 inline bool cell_location_contains(Location* location, int cell) {
 	return location->top_left == cell

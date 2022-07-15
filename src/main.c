@@ -8,16 +8,18 @@
 #include "cells.h"
 #include "collision.h"
 
-#define ENTITES 5 
+#define ENTITES 10
 
-void initialise_window();
+void initialise_window(Camera2D* camera);
 void display_fps();
 void init_entities(EntityType* type, Position* position, Size* size, Velocity* velocity, Color* color);
+void draw_entity(entity_id_t entity, Position* position, Size* size, Color* color);
 void draw_number(int posX, int posY, int size, int n);
 
 int main(void)
 {
-    initialise_window();
+    Camera2D camera = { .offset = {0.0f, MAP_HEIGHT * WORLD_TO_SCREEN}, .rotation = 0.0f, .target = {0.0f, 0.0f}, .zoom = 1.0f};
+    initialise_window(&camera);
 
     cell_t cells[CELLS_COUNT];
     for (int i = 0; i < CELLS_COUNT; i++) {
@@ -41,6 +43,8 @@ int main(void)
         BeginDrawing();
         ClearBackground(BLACK);
         float deltaTime = GetFrameTime();
+
+        DrawRectangle(0, 0, MAP_WIDTH * WORLD_TO_SCREEN, MAP_HEIGHT * WORLD_TO_SCREEN, DARKBROWN);
 
         // move entity
         // Track entity
@@ -77,59 +81,55 @@ int main(void)
 
                 cells_track_entity(cells, i, &position[i], &size[i], &location[i]);
 
-                collision_t* collision = find_collision(cells, i, type, position, size, location);
-                if (collision != NULL) {
+				collision_t* collision = find_collision(cells, i, type, position, size, location);
+				if (collision != NULL) {
+					collision_item_t* iter = collision->first;
+					while (iter != NULL) {
 
-                    collision_item_t* iter = collision->first;
-                    while (iter != NULL) {
-                        Velocity v = {position[i].x - temporary.x, position[i].y - temporary.y};
+                        entity_id_t other = iter->id;
+                        position[i] = iter->point;
 
-                        const offset = 0.001;
-                        if (v.x > 0.0f) {
-                            position[i].x = position[iter->id].x - size[i].x - offset;
+                        switch (iter->side) {
+                        case left:
+                            velocity[i].x = abs(velocity[i].x);
+                            break;
+                        case right:
                             velocity[i].x = -abs(velocity[i].x);
-                            velocity[iter->id].x = abs(velocity[iter->id].x);
-                        }
-                        else if (v.x < 0.0f) {
-                            position[i].x = position[iter->id].x + size[iter->id].x + offset;
-							velocity[i].x = abs(velocity[i].x);
-                            velocity[iter->id].x = -abs(velocity[iter->id].x);
-
-                        }
-
-						if (v.y > 0.0f) {
-                            position[i].y = position[iter->id].y - size[i].y - offset;
-							velocity[i].y = -abs(velocity[i].y);
-                            velocity[iter->id].y = abs(velocity[iter->id].y);
-
-                        }
-                        else if (v.y < 0.0f) {
-                            position[i].y = position[iter->id].y + size[iter->id].y + offset;
-							velocity[i].y = abs(velocity[i].y);
-                            velocity[iter->id].y = -abs(velocity[iter->id].y);
+                            break;
+						case top:
+                            velocity[i].y = -abs(velocity[i].y);
+                            break;
+						case bottom:
+                            velocity[i].y = abs(velocity[i].y);
+                            break;
                         }
 
-                        
-                        iter = iter->next;
-                    }
-                    
-                    collision_free(collision);
-                }
+						iter = iter->next;
+					}
+					collision_free(collision);
+				}
             }
         }
 
+		BeginMode2D(camera);
         for (int i = 0; i < ENTITES; i++) {
-			DrawRectangle(position[i].x * WORLD_TO_SCREEN, position[i].y * WORLD_TO_SCREEN, size[i].x * WORLD_TO_SCREEN, size[i].y * WORLD_TO_SCREEN, color[i]);
-        }
-
-        for (int i = 0; i < CELLS_COUNT; i++) {
+            draw_entity(i, position, size, color);
+		}
+		for (int i = 0; i < CELLS_COUNT; i++) {
             if (cells[i].n == 0) continue;
             Position cp = cell_position(i);
             int alpha = (int)(255.0f / (float)MAX_ENTITES_PER_CELL * (float)cells[i].n);
             Color color = { 255.0f, 0, 0, max(alpha, 50.0f)};
-            DrawRectangleLines(cp.x * WORLD_TO_SCREEN, cp.y * WORLD_TO_SCREEN, CELL_WIDTH * WORLD_TO_SCREEN, CELL_HEIGHT * WORLD_TO_SCREEN, color);
-            draw_number(cp.x * WORLD_TO_SCREEN, cp.y * WORLD_TO_SCREEN, 10, cells[i].n);
+            float y = (-cp.y - CELL_HEIGHT);
+            DrawRectangleLines(cp.x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN, CELL_WIDTH * WORLD_TO_SCREEN, CELL_HEIGHT * WORLD_TO_SCREEN, color);
+            // draw_number(cp.x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN, 10, i);
+
+            for (int j = 0; j < cells[i].n; j++) {
+                draw_number(cp.x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN + (11 * j), 10, cells[i].entites[j]);
+            }
         }
+
+        EndMode2D();
 
         display_fps();
         EndDrawing();
@@ -158,10 +158,16 @@ void init_entities(EntityType* type, Position* position, Size* size, Velocity* v
     };
 }
 
-void initialise_window() {
+void draw_entity(entity_id_t entity, Position* position, Size* size, Color* color) {
+    float y = -position[entity].y - size[entity].y;
+	DrawRectangle(position[entity].x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN, size[entity].x * WORLD_TO_SCREEN, size[entity].y * WORLD_TO_SCREEN, color[entity]);
+}
+
+void initialise_window(Camera2D* camera) {
 	const int screenHeight = (int)(SCREEN_RATIO * SCREEN_WIDTH);
     InitWindow(SCREEN_WIDTH, screenHeight, "Window");
     SetTargetFPS(0);
+    BeginMode2D(*camera);
 }
 
 void display_fps() {
