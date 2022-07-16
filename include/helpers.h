@@ -9,10 +9,18 @@
 
 #define WORLD_TO_SCREEN (SCREEN_WIDTH / 100.0)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef uint16_t entity_id_t; 
 
 inline int random(int min, int max) {
     return min + rand() / (RAND_MAX / (max - min + 1) + 1);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // INCLUDE_HELPERS_H

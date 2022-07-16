@@ -93,26 +93,6 @@ int cell_neighbour_bottom_right(int index) {
     return index + CELL_COLS + 1;
 }
 
-inline void cells_calculate_corner_cell_index(Position* position, Size* size, Location* location) {
-	Position br = {position->x + size->x, position->y};
-	Position tl = {position->x, position->y + size->y};
-	Position tr = {position->x + size->x, position->y + size->y};
-
-	location->bottom_left = cell_single_index(position);
-
-	location->bottom_right = cell_single_index(&br);
-    if (location->bottom_right == location->bottom_left) location->bottom_right = -1;
-
-	location->top_left = cell_single_index(&tl);
-    if (location->top_left == location->bottom_left
-        || location->top_left == location->bottom_right) location->top_left = -1;
-
-	location->top_right = cell_single_index(&tr);
-    if (location->top_right == location->bottom_left
-		|| location->top_right== location->bottom_right
-        || location->top_right == location->top_left) location->top_right = -1;
-}
-
 void cells_add_entity(cell_t* cell, entity_id_t entity) {
     if (cell->n == MAX_ENTITES_PER_CELL - 1) {
         fprintf(stderr, "Error too many entities per cell.\n");
@@ -143,7 +123,7 @@ void cells_remove_entity(cell_t* cell, entity_id_t entity) {
 
 void cells_begin_track_entity(cell_t* cells, entity_id_t entity, Position* position, Size* size, Location* location) {
 
-    cells_calculate_corner_cell_index(position, size, location);
+    cells_rectangle_location(position, size, location);
 
 	cells_add_entity(&cells[location->bottom_left], entity);
     if(location->bottom_right != -1)
@@ -171,55 +151,13 @@ void cells_track_entity(cell_t* cells, entity_id_t entity, Position* position, S
     // Wennd left ecke usegönd aber rechti dinne blibed gits en doppelti zählig 
 
     Location updated = {0,0,0,0};
-    cells_calculate_corner_cell_index(position, size, &updated);
+    cells_rectangle_location(position, size, &updated);
 
     cells_location_apply_change(cells, entity, location, &location->bottom_left, &updated, &updated.bottom_left);
     cells_location_apply_change(cells, entity, location, &location->bottom_right, &updated, &updated.bottom_right);
     cells_location_apply_change(cells, entity, location, &location->top_left, &updated, &updated.top_left);
     cells_location_apply_change(cells, entity, location, &location->top_right, &updated, &updated.top_right);
 
-    /*
-
-/
-	if (updated.bottom_left != location->bottom_left) {
-        if (cell_location_bottom_left_unique(&updated) && !cell_location_contains(location, updated.bottom_left)) {
-            cells_add_entity(&cells[updated.bottom_left], entity);
-        }
-        if (cell_location_bottom_left_unique(location) && !cell_location_contains(&updated, location->bottom_left)) {
-            cells_remove_entity(&cells[location->bottom_left], entity);
-        }
-    }
-
-
-    if (updated.top_left != location->top_left) {
-        if (!cell_location_contains(location, updated.top_left)) {
-            cells_add_entity(&cells[updated.top_left], entity);
-        }
-        if (!cell_location_contains(&updated, location->top_left)) {
-            cells_remove_entity(&cells[location->top_left], entity);
-        }
-    }
-    
-	if (updated.top_right != location->top_right) {
-        if (cell_location_top_right_unique(&updated) && !cell_location_contains(location, updated.top_right)) {
-            cells_add_entity(&cells[updated.top_right], entity);
-        }
-        if(cell_location_top_right_unique(location) && !cell_location_contains(&updated, location->top_right)) {
-            cells_remove_entity(&cells[location->top_right], entity);
-        }
-    }
-
-	
-
-	if (updated.bottom_right != location->bottom_right) {
-        if (cell_location_bottom_right_unique(&updated) && !cell_location_contains(location, updated.bottom_right)) {
-            cells_add_entity(&cells[updated.bottom_right], entity);
-        }
-        if (cell_location_bottom_right_unique(location) && !cell_location_contains(&updated, location->bottom_right)) {
-            cells_remove_entity(&cells[location->bottom_right], entity);
-        }
-    }
-    */
 	location->bottom_left = updated.bottom_left;
     location->bottom_right = updated.bottom_right;
     location->top_left = updated.top_left;

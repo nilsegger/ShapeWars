@@ -8,7 +8,7 @@
 #include "cells.h"
 #include "collision.h"
 
-#define ENTITES 10
+#define ENTITES 100
 
 void initialise_window(Camera2D* camera);
 void display_fps();
@@ -34,6 +34,15 @@ int main(void)
     Location location[ENTITES];
 
     init_entities(type, position, size, velocity, color);
+    /*position[0] = (Position){MAP_WIDTH - 9.0f,  0.0f};
+    size[0] = (Size){8.0f, 8.0f};
+    color[0] = RED;
+    velocity[0] = (Velocity){-5.0f, 0.0f};
+
+	position[1] = (Position){ MAP_WIDTH / 2.0f, 0.0f };
+    size[1] = (Size){8.0f, 8.0f};
+    color[1] = GREEN;
+    velocity[1] = (Velocity){0.0f, 0.0f};*/
 
     for (int i = 0; i < ENTITES; i++) {
         cells_begin_track_entity(cells, i, &position[i], &size[i], &location[i]);
@@ -54,60 +63,73 @@ int main(void)
 
 			for (entity_id_t i = 0; i < ENTITES; i++) {
 
-                Position temporary = {position[i].x, position[i].y};
-
-                position[i].x += velocity[i].x * deltaTime;
-                position[i].y += velocity[i].y * deltaTime;
-
-                if (position[i].x + size[i].x > MAP_WIDTH) {
-                    position[i].x = MAP_WIDTH - size[i].x;
-                    velocity[i].x *= -1;
-                }
-
-				if (position[i].y + size[i].y > MAP_HEIGHT) {
-                    position[i].y = MAP_HEIGHT - size[i].y;
-                    velocity[i].y *= -1;
-                }
-
-                if (position[i].x < 0.0f) {
-                    position[i].x = 0.0f;
-                    velocity[i].x *= -1;
-                }
-
-                if (position[i].y < 0.0f) {
-                    position[i].y = 0.0f;
-                    velocity[i].y *= -1;
-                }
-
-                cells_track_entity(cells, i, &position[i], &size[i], &location[i]);
-
-				collision_t* collision = find_collision(cells, i, type, position, size, location);
+                Position ghost = { position[i].x + (velocity[i].x * deltaTime), position[i].y + (velocity[i].y * deltaTime) };
+                bool didCollide = false;
+                collision_t* collision = find_collision(cells, i, type, position, size, location); //find_all_in_rect(&ghost, &size[i], cells, i, type, position, size, location);
 				if (collision != NULL) {
 					collision_item_t* iter = collision->first;
 					while (iter != NULL) {
-
                         entity_id_t other = iter->id;
-                        position[i] = iter->point;
+                        if (other == i) {
+							iter = iter->next;
+                            continue;
+                        }
 
-                        switch (iter->side) {
-                        case left:
-                            velocity[i].x = abs(velocity[i].x);
-                            break;
-                        case right:
+                        didCollide = true;
+
+                        Position center = { position[i].x + (size->x / 2.0f) , position[i].y + (size->y / 2.0f)};
+        
+                        switch (side_of_point(&center, &position[other], &size[other])) {
+                        case RECTANGLE_LEFT:
+                            position[i].x = position[other].x - size[i].x - 0.01f;
                             velocity[i].x = -abs(velocity[i].x);
+                            velocity[other].x = abs(velocity[other].x);
                             break;
-						case top:
-                            velocity[i].y = -abs(velocity[i].y);
+                        case RECTANGLE_RIGHT:
+							position[i].x = position[other].x + size[other].x + 0.01f;
+                            velocity[i].x = abs(velocity[i].x);
+                            velocity[other].x = -abs(velocity[other].x);
                             break;
-						case bottom:
+						case RECTANGLE_TOP:
+							position[i].y = position[other].y + size[other].y + 0.01f;
                             velocity[i].y = abs(velocity[i].y);
+                            velocity[other].x = -abs(velocity[other].x);
+                            break;
+						case RECTANGLE_BOTTOM:
+							position[i].y = position[other].y - size[i].y - 0.01f;
+                            velocity[i].y = -abs(velocity[i].y);
+                            velocity[other].y = abs(velocity[other].y);
                             break;
                         }
 
 						iter = iter->next;
 					}
 					collision_free(collision);
-				}
+                }
+
+                if (!didCollide) position[i] = ghost;
+
+                if (position[i].x < 0.0f) {
+                    position[i].x = 0.0f;
+                    velocity[i].x = abs(velocity[i].x);
+                }
+
+				if (position[i].x > MAP_WIDTH - size[i].x) {
+                    position[i].x = MAP_WIDTH - size[i].x;
+                    velocity[i].x = -abs(velocity[i].x);
+                }
+
+				if (position[i].y < 0.0f) {
+                    position[i].y = 0.0f;
+                    velocity[i].y = abs(velocity[i].y);
+                }
+
+				if (position[i].y > MAP_HEIGHT - size[i].y) {
+                    position[i].y = MAP_HEIGHT - size[i].y;
+                    velocity[i].y = -abs(velocity[i].y);
+                }
+
+                cells_track_entity(cells, i, &position[i], &size[i], &location[i]);
             }
         }
 
@@ -124,9 +146,9 @@ int main(void)
             DrawRectangleLines(cp.x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN, CELL_WIDTH * WORLD_TO_SCREEN, CELL_HEIGHT * WORLD_TO_SCREEN, color);
             // draw_number(cp.x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN, 10, i);
 
-            for (int j = 0; j < cells[i].n; j++) {
+            /*for (int j = 0; j < cells[i].n; j++) {
                 draw_number(cp.x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN + (11 * j), 10, cells[i].entites[j]);
-            }
+            }*/
         }
 
         EndMode2D();
