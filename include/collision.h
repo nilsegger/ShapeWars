@@ -11,13 +11,6 @@
 extern "C" {
 #endif
 
-	/*
-typedef struct {
-	entity_id_t other;
-
-} collision_desc_t;
-*/
-
 typedef enum {
 	RECTANGLE_SIDE_ERROR = -1,
 	RECTANGLE_LEFT,
@@ -79,7 +72,7 @@ typedef struct Collision {
 } collision_t;
 
 inline void collision_free(collision_t* collision) {
-	if (collision->n > 0) {
+	if (collision->n > 0 && collision->first != NULL) {
 		collision_item_t* iter = collision->first;
 		while (iter != NULL) {
 			collision_item_t* temp = iter;
@@ -92,7 +85,13 @@ inline void collision_free(collision_t* collision) {
 
 inline void add_collision(collision_t* collision, entity_id_t id) {
 	if (collision->first == NULL) {
-		collision->first = (collision_item_t*)calloc(1, sizeof(collision_item_t));
+		collision->first = (collision_item_t*)calloc(1, sizeof(struct CollisionItem));
+		
+		if (collision->first == NULL) {
+			fprintf(stderr, "Failed to allocated memory for CollisionItem\n");
+			return;
+		}
+
 		collision->last = collision->first;
 	}
 	else {
@@ -103,7 +102,12 @@ inline void add_collision(collision_t* collision, entity_id_t id) {
 			iter = iter->next;
 		}
 
-		collision->last->next = (collision_item_t*)calloc(1, sizeof(collision_item_t));
+		collision->last->next = (collision_item_t*)calloc(1, sizeof(struct CollisionItem));
+		if (collision->last->next == NULL) {
+			fprintf(stderr, "Failed to allocated memory for CollisionItem\n");
+			return;
+		}
+
 		collision->last = collision->last->next;
 	}
 	collision->n++;
