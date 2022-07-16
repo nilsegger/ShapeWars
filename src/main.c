@@ -1,4 +1,12 @@
-﻿#include <stdio.h>
+﻿
+/*
+    TODO
+        - Use stack instead of heap
+        - Remove WORLD_TO_SCREEN, use camera matrix
+
+*/
+
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <raylib.h>
@@ -8,52 +16,39 @@
 #include "cells.h"
 #include "collision.h"
 
-#define ENTITES 100
+// #define ENTITES 100
 
 void initialise_window(Camera2D* camera);
 void display_fps();
-void init_entities(EntityType* type, Position* position, Size* size, Velocity* velocity, Color* color);
-void draw_entity(entity_id_t entity, Position* position, Size* size, Color* color);
+void init_entities(world_t* world);
+void draw_entity(world_t* world, entity_id_t entity);
 void draw_number(int posX, int posY, int size, int n);
 
 int main(void)
 {
-    Camera2D camera = { .offset = {0.0f, MAP_HEIGHT * WORLD_TO_SCREEN}, .rotation = 0.0f, .target = {0.0f, 0.0f}, .zoom = 1.0f};
+    Size map = { 1000, 2000 };
+    Size cell = { 100, 100 };
+
+    Camera2D camera = { .offset = {0.0f, map.y * WORLD_TO_SCREEN}, .rotation = 0.0f, .target = {0.0f, 0.0f}, .zoom = 1.0f};
     initialise_window(&camera);
 
-    cell_t cells[CELLS_COUNT];
-    for (int i = 0; i < CELLS_COUNT; i++) {
-        cells[i].n = 0;
-    }
+    const uint16_t entites = 10000;
+    world_t* world = create_world(entites, map, cell, entites / 10.0f);
 
-    EntityType type[ENTITES];
-    Position position[ENTITES];
-    Size size[ENTITES];
-    Velocity velocity[ENTITES];
-    Color color[ENTITES];
-    Location location[ENTITES];
+    init_entities(world);
 
-    init_entities(type, position, size, velocity, color);
-    /*position[0] = (Position){MAP_WIDTH - 9.0f,  0.0f};
-    size[0] = (Size){8.0f, 8.0f};
-    color[0] = RED;
-    velocity[0] = (Velocity){-5.0f, 0.0f};
+    cells_begin_track_entites(world);
 
-	position[1] = (Position){ MAP_WIDTH / 2.0f, 0.0f };
-    size[1] = (Size){8.0f, 8.0f};
-    color[1] = GREEN;
-    velocity[1] = (Velocity){0.0f, 0.0f};*/
-
-    for (int i = 0; i < ENTITES; i++) {
-        cells_begin_track_entity(cells, i, &position[i], &size[i], &location[i]);
-    }
     
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
         float deltaTime = GetFrameTime();
 
-        DrawRectangle(0, 0, MAP_WIDTH * WORLD_TO_SCREEN, MAP_HEIGHT * WORLD_TO_SCREEN, DARKBROWN);
+        DrawRectangle(0, 0, world->grid.map_size.x * WORLD_TO_SCREEN, world->grid.map_size.y * WORLD_TO_SCREEN, DARKBROWN);
+
+        camera.zoom += GetMouseWheelMove() * deltaTime * 5.0f;
+        if (camera.zoom < 0.0f) camera.zoom = 0.0f;
 
         // move entity
         // Track entity
@@ -61,11 +56,11 @@ int main(void)
 
         if (IsKeyDown(32) || IsKeyPressed(83)) {
 
-			for (entity_id_t i = 0; i < ENTITES; i++) {
+			for (entity_id_t i = 0; i < world->entities_count; i++) {
 
-                Position ghost = { position[i].x + (velocity[i].x * deltaTime), position[i].y + (velocity[i].y * deltaTime) };
+                Position ghost = { world->positions[i].x + (world->velocities[i].x * deltaTime), world->positions[i].y + (world->velocities[i].y * deltaTime) };
                 bool didCollide = false;
-                collision_t* collision = find_collision(cells, i, type, position, size, location); //find_all_in_rect(&ghost, &size[i], cells, i, type, position, size, location);
+                collision_t* collision = find_collision(world, i); //find_all_in_rect(&ghost, &world->sizes[i], cells, i, type, position, size, location);
 				if (collision != NULL) {
 					collision_item_t* iter = collision->first;
 					while (iter != NULL) {
@@ -77,28 +72,28 @@ int main(void)
 
                         didCollide = true;
 
-                        Position center = { position[i].x + (size->x / 2.0f) , position[i].y + (size->y / 2.0f)};
+                        Position center = { world->positions[i].x + (world->sizes->x / 2.0f) , world->positions[i].y + (world->sizes->y / 2.0f)};
         
-                        switch (side_of_point(&center, &position[other], &size[other])) {
+                        switch (side_of_point(&center, &world->positions[other], &world->sizes[other])) {
                         case RECTANGLE_LEFT:
-                            position[i].x = position[other].x - size[i].x - 0.01f;
-                            velocity[i].x = -abs(velocity[i].x);
-                            velocity[other].x = abs(velocity[other].x);
+                            world->positions[i].x = world->positions[other].x - world->sizes[i].x - 0.01f;
+                            world->velocities[i].x = -abs(world->velocities[i].x);
+                            world->velocities[other].x = abs(world->velocities[other].x);
                             break;
                         case RECTANGLE_RIGHT:
-							position[i].x = position[other].x + size[other].x + 0.01f;
-                            velocity[i].x = abs(velocity[i].x);
-                            velocity[other].x = -abs(velocity[other].x);
+							world->positions[i].x = world->positions[other].x + world->sizes[other].x + 0.01f;
+                            world->velocities[i].x = abs(world->velocities[i].x);
+                            world->velocities[other].x = -abs(world->velocities[other].x);
                             break;
 						case RECTANGLE_TOP:
-							position[i].y = position[other].y + size[other].y + 0.01f;
-                            velocity[i].y = abs(velocity[i].y);
-                            velocity[other].x = -abs(velocity[other].x);
+							world->positions[i].y = world->positions[other].y + world->sizes[other].y + 0.01f;
+                            world->velocities[i].y = abs(world->velocities[i].y);
+                            world->velocities[other].x = -abs(world->velocities[other].x);
                             break;
 						case RECTANGLE_BOTTOM:
-							position[i].y = position[other].y - size[i].y - 0.01f;
-                            velocity[i].y = -abs(velocity[i].y);
-                            velocity[other].y = abs(velocity[other].y);
+							world->positions[i].y = world->positions[other].y - world->sizes[i].y - 0.01f;
+                            world->velocities[i].y = -abs(world->velocities[i].y);
+                            world->velocities[other].y = abs(world->velocities[other].y);
                             break;
                         }
 
@@ -107,43 +102,45 @@ int main(void)
 					collision_free(collision);
                 }
 
-                if (!didCollide) position[i] = ghost;
+                if (!didCollide) world->positions[i] = ghost;
 
-                if (position[i].x < 0.0f) {
-                    position[i].x = 0.0f;
-                    velocity[i].x = abs(velocity[i].x);
+                if (world->positions[i].x < 0.0f) {
+                    world->positions[i].x = 0.0f;
+                    world->velocities[i].x = abs(world->velocities[i].x);
                 }
 
-				if (position[i].x > MAP_WIDTH - size[i].x) {
-                    position[i].x = MAP_WIDTH - size[i].x;
-                    velocity[i].x = -abs(velocity[i].x);
+				if (world->positions[i].x > map.x - world->sizes[i].x) {
+                    world->positions[i].x = map.x - world->sizes[i].x;
+                    world->velocities[i].x = -abs(world->velocities[i].x);
                 }
 
-				if (position[i].y < 0.0f) {
-                    position[i].y = 0.0f;
-                    velocity[i].y = abs(velocity[i].y);
+				if (world->positions[i].y < 0.0f) {
+                    world->positions[i].y = 0.0f;
+                    world->velocities[i].y = abs(world->velocities[i].y);
                 }
 
-				if (position[i].y > MAP_HEIGHT - size[i].y) {
-                    position[i].y = MAP_HEIGHT - size[i].y;
-                    velocity[i].y = -abs(velocity[i].y);
+				if (world->positions[i].y > map.y - world->sizes[i].y) {
+                    world->positions[i].y = map.y - world->sizes[i].y;
+                    world->velocities[i].y = -abs(world->velocities[i].y);
                 }
 
-                cells_track_entity(cells, i, &position[i], &size[i], &location[i]);
+                cells_track_entity(world, i);
             }
         }
 
 		BeginMode2D(camera);
-        for (int i = 0; i < ENTITES; i++) {
-            draw_entity(i, position, size, color);
+        for (entity_id_t i = 0; i < world->entities_count; i++) {
+            draw_entity(world, i);
 		}
-		for (int i = 0; i < CELLS_COUNT; i++) {
-            if (cells[i].n == 0) continue;
-            Position cp = cell_position(i);
-            int alpha = (int)(255.0f / (float)MAX_ENTITES_PER_CELL * (float)cells[i].n);
+
+		for (int i = 0; i < world->grid.count; i++) {
+            cell_t* cell = &world->grid.cells[i];
+            if (cell->count == 0) continue;
+            Position cp = cell_position(world, i);
+            int alpha = (int)(255.0f / (float)world->grid.max_entitites_per_cell* (float)cell->count);
             Color color = { 255.0f, 0, 0, max(alpha, 50.0f)};
-            float y = (-cp.y - CELL_HEIGHT);
-            DrawRectangleLines(cp.x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN, CELL_WIDTH * WORLD_TO_SCREEN, CELL_HEIGHT * WORLD_TO_SCREEN, color);
+            float y = (-cp.y - world->grid.cell_size.y);
+            DrawRectangleLines(cp.x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN, world->grid.cell_size.x* WORLD_TO_SCREEN, world->grid.cell_size.y * WORLD_TO_SCREEN, color);
             // draw_number(cp.x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN, 10, i);
 
             /*for (int j = 0; j < cells[i].n; j++) {
@@ -156,33 +153,35 @@ int main(void)
         display_fps();
         EndDrawing();
     }
+
+    free_world(world);
     CloseWindow();
     return 0;
 }
 
-void init_entities(EntityType* type, Position* position, Size* size, Velocity* velocity, Color* color) {
-    for (int i = 0; i < ENTITES; i++) {
-        type[i] = Walks;
+void init_entities(world_t* world) {
+    for (int i = 0; i < world->entities_count; i++) {
+        world->types[i] = Walks;
 
-		size[i].x = random(2, 6);
-        size[i].y = random(2, 6);
+		world->sizes[i].x = random(2, 6);
+        world->sizes[i].y = random(2, 6);
 
-        position[i].x = random(0, MAP_WIDTH - size->x - 5);
-        position[i].y = random(0, MAP_HEIGHT - size->y - 5);
+        world->positions[i].x = random(0, world->grid.map_size.x - 7.0f);
+        world->positions[i].y = random(0, world->grid.map_size.y - 7.0f);
         
-		velocity[i].x = random(0, 30);
-        velocity[i].y = random(0, 30);
+		world->velocities[i].x = random(-30, 30);
+        world->velocities[i].y = random(-30, 30);
 
-        color[i].a = 255;
-        color[i].r = random(0, 255);
-        color[i].g = random(0, 255);
-        color[i].b = random(0, 255);
+        world->colors[i].a = 255;
+        world->colors[i].r = random(0, 255);
+        world->colors[i].g = random(0, 255);
+        world->colors[i].b = random(0, 255);
     };
 }
 
-void draw_entity(entity_id_t entity, Position* position, Size* size, Color* color) {
-    float y = -position[entity].y - size[entity].y;
-	DrawRectangle(position[entity].x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN, size[entity].x * WORLD_TO_SCREEN, size[entity].y * WORLD_TO_SCREEN, color[entity]);
+void draw_entity(world_t* world, entity_id_t entity) {
+    float y = -world->positions[entity].y - world->sizes[entity].y;
+	DrawRectangle(world->positions[entity].x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN, world->sizes[entity].x * WORLD_TO_SCREEN, world->sizes[entity].y * WORLD_TO_SCREEN, world->colors[entity]);
 }
 
 void initialise_window(Camera2D* camera) {

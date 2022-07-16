@@ -7,13 +7,11 @@
 #define SCREEN_RATIO (1334.0f / 750.0f)
 #define SCREEN_WIDTH 500
 
-#define WORLD_TO_SCREEN (SCREEN_WIDTH / 100.0)
+#define WORLD_TO_SCREEN (SCREEN_WIDTH / 1000.0)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef uint16_t entity_id_t; 
 
 inline int random(int min, int max) {
     return min + rand() / (RAND_MAX / (max - min + 1) + 1);

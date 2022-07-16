@@ -6,114 +6,106 @@
 #include "structs.h"
 #include "cells.h"
 
-void draw_cell(int index, Color color) {
-    if (index == -1) return;
-	Position pos = cell_position(index);
-    int v = 255.0f / (float)CELLS_COUNT * (float)(index + 1);
-    Color col = { 255, v, v, 100};
-	DrawRectangleLines(pos.x * WORLD_TO_SCREEN, pos.y * WORLD_TO_SCREEN, CELL_WIDTH * WORLD_TO_SCREEN, CELL_HEIGHT * WORLD_TO_SCREEN, col);
-}
-
-Position cell_position(int index) {
+Position cell_position(world_t* world, int index) {
     Position p;
-    p.x = cell_col(index) * (float)CELL_WIDTH;
-    p.y = cell_row(index) * (float)CELL_HEIGHT;
+    p.x = cell_col(world, index) * (float)world->grid.cell_size.x;
+    p.y = cell_row(world, index) * (float)world->grid.cell_size.y;
     return p;
 }
 
-int cell_row(int index) {
-    return index / CELL_COLS;
+int cell_row(world_t*world, int index) {
+    return index / world->grid.cols;
 }
 
-int cell_col(int index) {
-    if (index < CELL_COLS) return index;
-    return index - ((cell_row(index)) * CELL_COLS);
+int cell_col(world_t*world, int index) {
+    if (index < world->grid.cols) return index;
+    return index - ((cell_row(world, index)) * world->grid.cols);
 }
 
-int cell_row_first(int row) {
-    return row * CELL_COLS;
+int cell_row_first(world_t*world, int row) {
+    return row * world->grid.cols;
 }
 
-int cell_row_last(int row) {
-    return cell_row_first(row) + CELL_COLS - 1;
+int cell_row_last(world_t*world, int row) {
+    return cell_row_first(world, row) + world->grid.cols - 1;
 }
 
-int cell_single_index(Position* position) {
+int cell_single_index(world_t* world, Position* position) {
 
-    if (position->x >= MAP_WIDTH) position->x = MAP_WIDTH - 0.001f;
+    if (position->x >= world->grid.map_size.x) position->x = world->grid.map_size.x - 0.001f;
     if (position->x <= 0.0f) position->x = 0.001f;
-    if (position->y >= MAP_HEIGHT) position->y = MAP_HEIGHT - 0.001f;
+    if (position->y >= world->grid.map_size.y) position->y = world->grid.map_size.y - 0.001f;
     if (position->y <= 0.0f) position->y = 0.001f;
 
-    int index = (int)(position->y / CELL_HEIGHT) * CELL_COLS + (int)(position->x / CELL_WIDTH);
-    if (index > CELLS_COUNT - 1) {
-        fprintf(stderr, "return Position out of cell range. %d %d\n", index, CELLS_COUNT - 1);
-        return CELLS_COUNT - 1;
+    int index = (int)(position->y / world->grid.cell_size.y) * world->grid.cols + (int)(position->x / world->grid.cell_size.x);
+    if (index > world->grid.count - 1) {
+        fprintf(stderr, "return Position out of cell range. %d %d\n", index, world->grid.count - 1);
+        return world->grid.count - 1;
     }
     return index;
 }
 
-int cell_neighbour_top_left(int index) {
-    if (index < CELL_COLS || index == cell_row_first(cell_row(index))) return -1;
-    return index - CELL_COLS - 1;
+int cell_neighbour_top_left(world_t* world, int index) {
+    if (index < world->grid.cols || index == cell_row_first(world, cell_row(world, index))) return -1;
+    return index - world->grid.cols - 1;
 }
 
-int cell_neighbour_top(int index) {
-    if (index < CELL_COLS) return -1;
-    return index - CELL_COLS;
+int cell_neighbour_top(world_t* world, int index) {
+    if (index < world->grid.cols) return -1;
+    return index - world->grid.cols;
 }
 
-int cell_neighbour_top_right(int index) {
-    if (index < CELL_COLS || index == cell_row_last(cell_row(index))) return -1;
-    return index - CELL_COLS + 1;
+int cell_neighbour_top_right(world_t* world, int index) {
+    if (index < world->grid.cols || index == cell_row_last(world, cell_row(world, index))) return -1;
+    return index - world->grid.cols + 1;
 }
 
-int cell_neighbour_left(int index) {
-    if (index == 0 || cell_row_first(cell_row(index)) == index)  return -1;
+int cell_neighbour_left(world_t* world, int index) {
+    if (index == 0 || cell_row_first(world, cell_row(world, index)) == index)  return -1;
     return index - 1;
 }
 
-int cell_neighbour_right(int index) {
-    if (index == CELLS_COUNT - 1 || cell_row_last(cell_row(index)) == index) return -1;
+int cell_neighbour_right(world_t* world, int index) {
+    if (index == world->grid.count - 1 || cell_row_last(world, cell_row(world, index)) == index) return -1;
     return index + 1;
 }
 
-int cell_neighbour_bottom_left(int index) {
-    if (cell_row(index) == CELL_ROWS - 1 || cell_row_first(cell_row(index)) == index) return -1;
-    return index + CELL_COLS - 1;
+int cell_neighbour_bottom_left(world_t* world, int index) {
+    if (cell_row(world, index) == world->grid.rows - 1 || cell_row_first(world, cell_row(world, index)) == index) return -1;
+    return index + world->grid.cols - 1;
 }
 
-int cell_neighbour_bottom(int index) {
-    if (cell_row(index) == CELL_ROWS - 1) return -1;
-    return index + CELL_COLS;
+int cell_neighbour_bottom(world_t* world, int index) {
+    if (cell_row(world, index) == world->grid.rows - 1) return -1;
+    return index + world->grid.cols;
 }
 
-int cell_neighbour_bottom_right(int index) {
-    if (cell_row(index) == CELL_ROWS - 1 || cell_row_last(cell_row(index)) == index) return -1;
-    return index + CELL_COLS + 1;
+int cell_neighbour_bottom_right(world_t* world, int index) {
+    if (cell_row(world, index) == world->grid.rows - 1 || cell_row_last(world, cell_row(world, index)) == index) return -1;
+    return index + world->grid.cols + 1;
 }
 
-void cells_add_entity(cell_t* cell, entity_id_t entity) {
-    if (cell->n == MAX_ENTITES_PER_CELL - 1) {
+void cells_add_entity(world_t* world, cell_t* cell, entity_id_t entity) {
+    if (cell->count  == world->grid.max_entitites_per_cell - 1) {
         fprintf(stderr, "Error too many entities per cell.\n");
         return;
     }
-    cell->entites[cell->n] = entity;
-    cell->n++;
+    cell->entites[cell->count] = entity;
+    cell->count++;
 }
 
 void cells_remove_entity(cell_t* cell, entity_id_t entity) {
 
-    if (cell->n > 0) {
-		if (cell->entites[cell->n - 1] == entity) {
-			cell->n--;
+    if (cell->count > 0) {
+		if (cell->entites[cell->count - 1] == entity) {
+			cell->count--;
 			return;
 		}
 
-		for (int i = 0; i < cell->n - 1; i++) {
+		for (int i = 0; i < cell->count - 1; i++) {
 			if (cell->entites[i] == entity) {
-				cell->entites[i] = cell->entites[cell->n - 1];
-				cell->n--;
+				cell->entites[i] = cell->entites[cell->count - 1];
+				cell->count--;
 				return;
 			}
 		}
@@ -121,43 +113,47 @@ void cells_remove_entity(cell_t* cell, entity_id_t entity) {
     fprintf(stderr, "Entity not in cell...\n");
 }
 
-void cells_begin_track_entity(cell_t* cells, entity_id_t entity, Position* position, Size* size, Location* location) {
+void cells_begin_track_entites(world_t* world) {
 
-    cells_rectangle_location(position, size, location);
+    for (entity_id_t i = 0; i < world->entities_count; i++) {
+        
+        Location* location = &world->locations[i];
 
-	cells_add_entity(&cells[location->bottom_left], entity);
-    if(location->bottom_right != -1)
-		cells_add_entity(&cells[location->bottom_right], entity);
-    if(location->top_left != -1)
-		cells_add_entity(&cells[location->top_left], entity);
-    if(location->top_right != -1)
-		cells_add_entity(&cells[location->top_right], entity);
-	}
+        cells_rectangle_location(world, &world->positions[i], &world->sizes[i], location);
 
-inline void cells_location_apply_change(cell_t* cells, entity_id_t entity, Location* current, int*c , Location* updated, int* u) {
+        cells_add_entity(world, &world->grid.cells[location->bottom_left], i);
+        if (location->bottom_right != -1)
+            cells_add_entity(world, &world->grid.cells[location->bottom_right], i);
+        if (location->top_left != -1)
+            cells_add_entity(world, &world->grid.cells[location->top_left], i);
+        if (location->top_right != -1)
+            cells_add_entity(world, &world->grid.cells[location->top_right], i);
+    }
+}
+
+inline void cells_location_apply_change(world_t* world, entity_id_t entity, Location* current, int*c , Location* updated, int* u) {
     if (*c == *u) return;
 
 	if (*u != -1 && !cell_location_contains(current, *u)) {
-		cells_add_entity(&cells[*u], entity);
+		cells_add_entity(world, &world->grid.cells[*u], entity);
 	}
 
 	if (*c != -1 && !cell_location_contains(updated, *c)) {
-		cells_remove_entity(&cells[*c], entity);
+		cells_remove_entity(&world->grid.cells[*c], entity);
 	}
 }
 
-void cells_track_entity(cell_t* cells, entity_id_t entity, Position* position, Size* size, Location* location) {
-
-    // Wennd left ecke usegönd aber rechti dinne blibed gits en doppelti zählig 
-
+void cells_track_entity(world_t* world, entity_id_t entity) {
     Location updated = {0,0,0,0};
-    cells_rectangle_location(position, size, &updated);
+    cells_rectangle_location(world, &world->positions[entity], &world->sizes[entity], &updated);
 
-    cells_location_apply_change(cells, entity, location, &location->bottom_left, &updated, &updated.bottom_left);
-    cells_location_apply_change(cells, entity, location, &location->bottom_right, &updated, &updated.bottom_right);
-    cells_location_apply_change(cells, entity, location, &location->top_left, &updated, &updated.top_left);
-    cells_location_apply_change(cells, entity, location, &location->top_right, &updated, &updated.top_right);
+    Location* location = &world->locations[entity];
 
+    cells_location_apply_change(world, entity, location, &location->bottom_left, &updated, &updated.bottom_left);
+    cells_location_apply_change(world, entity, location, &location->bottom_right, &updated, &updated.bottom_right);
+    cells_location_apply_change(world, entity, location, &location->top_left, &updated, &updated.top_left);
+    cells_location_apply_change(world, entity, location, &location->top_right, &updated, &updated.top_right);
+ 
 	location->bottom_left = updated.bottom_left;
     location->bottom_right = updated.bottom_right;
     location->top_left = updated.top_left;

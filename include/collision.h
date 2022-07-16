@@ -72,7 +72,7 @@ typedef struct CollisionItem {
 	struct CollisionItem* next;
 } collision_item_t;
 
-typedef struct {
+typedef struct Collision {
 	collision_item_t* first;
 	collision_item_t* last;
 	int n;
@@ -110,26 +110,34 @@ inline void add_collision(collision_t* collision, entity_id_t id) {
 	collision->last->id = id;
 }
 
-inline void find_entity_collision_in_cell(cell_t* cell, entity_id_t entity, EntityType* type, Position* position, Size* size, collision_t* collision) {	
-	if (cell->n == 1) return;
-	for (int i = 0; i < cell->n; i++) {
+inline void find_entity_collision_in_cell(world_t* world, cell_t* cell, entity_id_t entity, collision_t* collision) {	
+	if (cell->count == 1) return;
+	for (int i = 0; i < cell->count; i++) {
 		entity_id_t other = cell->entites[i];
 		if (entity == other) continue;
-		if (rectangle_collide(&position[entity], &size[entity], &position[other], &size[other])) {
+		if (rectangle_collide(&world->positions[entity], &world->sizes[entity], &world->positions[other], &world->sizes[other])) {
 			add_collision(collision, cell->entites[i]);
 		}
 	}
 }
 
-inline collision_t* find_collision(cell_t* cells, entity_id_t entity, EntityType* type, Position* position, Size* size, Location* location) {
-	collision_t* collision = (collision_t*)calloc(1, sizeof(collision_t));
-	find_entity_collision_in_cell(&cells[location[entity].bottom_left], entity, type, position, size, collision);
-	if(location[entity].bottom_right != -1)
-		find_entity_collision_in_cell(&cells[location[entity].bottom_right], entity, type, position, size, collision);
-	if(location[entity].top_left != -1)
-		find_entity_collision_in_cell(&cells[location[entity].top_left], entity, type, position, size, collision);
-	if(location[entity].top_right != -1)
-		find_entity_collision_in_cell(&cells[location[entity].top_right], entity, type, position, size, collision);
+inline collision_t* find_collision(world_t* world, entity_id_t entity) {
+	collision_t* collision = (collision_t*)calloc(1, sizeof(struct Collision));
+
+	if (collision == NULL) {
+		fprintf(stderr, "Cannot allocate memory for collision.\n");
+		return NULL;
+	}
+
+	Location location = world->locations[entity];
+
+	find_entity_collision_in_cell(world, &world->grid.cells[location.bottom_left], entity, collision);
+	if(location.bottom_right != -1)
+		find_entity_collision_in_cell(world, &world->grid.cells[location.bottom_right], entity, collision);
+	if(location.top_left != -1)
+		find_entity_collision_in_cell(world, &world->grid.cells[location.top_left], entity, collision);
+	if(location.top_right != -1)
+		find_entity_collision_in_cell(world, &world->grid.cells[location.top_right], entity, collision);
 
 	if (collision->n == 0) {
 		collision_free(collision);
@@ -139,6 +147,7 @@ inline collision_t* find_collision(cell_t* cells, entity_id_t entity, EntityType
 	return collision;
 }
 
+/*
 inline void find_rectangle_collision_in_cell(Position* rectPosition, Size* rectSize, cell_t* cell, EntityType* type, Position* position, Size* size, collision_t* collision) {	
 	for (int i = 0; i < cell->n; i++) {
 		entity_id_t other = cell->entites[i];
@@ -169,6 +178,7 @@ inline collision_t* find_all_in_rect(Position* rectPosition, Size* rectSize, cel
 
 	return collision;
 }
+*/
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,7 @@
 #ifndef INCLUDE_CELLS_H
 #define INCLUDE_CELLS_H
 
+/*
 #define MAP_WIDTH 100 // 100m
 #define MAP_HEIGHT 200 // 1km
 
@@ -15,49 +16,44 @@
 
 // THERE IS A BUG WHERE IF MAX_ENTITES_PER_CELL IS BIGGER THAN ENTITES THE PROGRAM WILL CRASH?
 #define MAX_ENTITES_PER_CELL 100
+*/
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct {
-	int n;
-	int entites[MAX_ENTITES_PER_CELL];
-} cell_t;
+void cells_begin_track_entites(world_t* world);
+void cells_track_entity(world_t* world, entity_id_t entity);
+Position cell_position(world_t* world, int index);
+int cell_row(world_t* world, int index);
+int cell_col(world_t* world, int index);
+int cell_row_first(world_t* world, int row);
+int cell_row_last(world_t* world, int row);
+int cell_single_index(world_t* world, Position* position);
+int cell_neighbour_top_left(world_t* world, int index);
+int cell_neighbour_top(world_t* world, int index);
+int cell_neighbour_top_right(world_t* world, int index);
+int cell_neighbour_left(world_t* world, int index);
+int cell_neighbour_right(world_t* world, int index);
+int cell_neighbour_bottom_left(world_t* world, int index);
+int cell_neighbour_bottom(world_t* world, int index);
+int cell_neighbour_bottom_right(world_t* world, int index);
 
-void draw_cell(int index);
-void cells_begin_track_entity(cell_t* cells, entity_id_t entity, Position* position, Size* size, Location* location);
-void cells_track_entity(cell_t* cells, entity_id_t entity, Position* position, Size* size, Location* location);
-Position cell_position(int index);
-int cell_row(int index);
-int cell_col(int index);
-int cell_row_first(int row);
-int cell_row_last(int row);
-int cell_single_index(Position* position);
-int cell_neighbour_top_left(int index);
-int cell_neighbour_top(int index);
-int cell_neighbour_top_right(int index);
-int cell_neighbour_left(int index);
-int cell_neighbour_right(int index);
-int cell_neighbour_bottom_left(int index);
-int cell_neighbour_bottom(int index);
-int cell_neighbour_bottom_right(int index);
-
-inline void cells_rectangle_location(Position* bottom_left, Size* size, Location* location) {
+inline void cells_rectangle_location(world_t* world, Position* bottom_left, Size* size, Location* location) {
 	Position br = {bottom_left->x + size->x, bottom_left->y};
 	Position tl = {bottom_left->x, bottom_left->y + size->y};
 	Position tr = {bottom_left->x + size->x, bottom_left->y + size->y};
 
-	location->bottom_left = cell_single_index(bottom_left);
+	location->bottom_left = cell_single_index(world, bottom_left);
 
-	location->bottom_right = cell_single_index(&br);
+	location->bottom_right = cell_single_index(world, &br);
     if (location->bottom_right == location->bottom_left) location->bottom_right = -1;
 
-	location->top_left = cell_single_index(&tl);
+	location->top_left = cell_single_index(world, &tl);
     if (location->top_left == location->bottom_left
         || location->top_left == location->bottom_right) location->top_left = -1;
 
-	location->top_right = cell_single_index(&tr);
+	location->top_right = cell_single_index(world, &tr);
     if (location->top_right == location->bottom_left
 		|| location->top_right== location->bottom_right
         || location->top_right == location->top_left) location->top_right = -1;
