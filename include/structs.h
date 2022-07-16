@@ -54,12 +54,13 @@ typedef struct World {
 	Velocity* velocities;
 	Location* locations;
 	Color* colors;
+	float to_screen_space;
 } world_t;
 
 void init_grid(Size map_size, Size cell_size, uint16_t maxEntitiesPerCell);
 void free_grid_components(grid_t* grid);
 
-world_t* create_world(uint16_t entites, Size map_size, Size cell_size, uint16_t maxEntitiesPerCell);
+world_t* create_world(uint16_t entites, Size map_size, Size cell_size, Size screen, uint16_t maxEntitiesPerCell);
 void free_world(world_t* world);
 
 #ifdef __cplusplus

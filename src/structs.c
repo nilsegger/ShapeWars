@@ -26,7 +26,7 @@ void free_grid_components(grid_t* grid) {
 	free(grid->cells);
 }
 
-world_t* create_world(uint16_t entites, Size map_size, Size cell_size, uint16_t maxEntitiesPerCell) {
+world_t* create_world(uint16_t entites, Size map_size, Size cell_size, Size screen, uint16_t maxEntitiesPerCell) {
 	world_t* world = (world_t*)calloc(1, sizeof(struct World));
 
 	if (world == NULL) return NULL;
@@ -40,6 +40,8 @@ world_t* create_world(uint16_t entites, Size map_size, Size cell_size, uint16_t 
 	world->velocities = (Velocity*)calloc(entites, sizeof(Velocity));
 	world->locations = (Location*)calloc(entites, sizeof(Location));
 	world->colors = (Color*)calloc(entites, sizeof(Color));
+
+	world->to_screen_space = screen.x / map_size.x;
 
 	return world;
 }
