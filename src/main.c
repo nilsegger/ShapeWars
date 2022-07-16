@@ -17,9 +17,7 @@
 #include "cells.h"
 #include "collision.h"
 
-// #define ENTITES 100
-
-void initialise_window(Camera2D* camera);
+void initialise_window();
 void display_fps();
 void init_entities(world_t* world);
 void draw_entity(world_t* world, entity_id_t entity);
@@ -27,11 +25,11 @@ void draw_number(int posX, int posY, int size, int n);
 
 int main(void)
 {
-    Size map = { 1000, 1000 };
-    Size cell = { 100, 100 };
+    Size map = { 50, 500 };
+    Size cell = { 10, 50 };
 
-    Camera2D camera = { .offset = {0.0f, map.y * WORLD_TO_SCREEN}, .rotation = 0.0f, .target = {0.0f, 0.0f}, .zoom = 1.0f};
-    initialise_window(&camera);
+    Camera2D camera = { .offset = {0.0f, SCREEN_WIDTH * SCREEN_RATIO}, .rotation = 0.0f, .target = {0.0f, 0.0f}, .zoom = 1.0f};
+    initialise_window();
 
     const uint16_t entites = 1000;
     world_t* world = create_world(entites, map, cell, entites);
@@ -48,8 +46,10 @@ int main(void)
 
         DrawRectangle(0, 0, (int)(world->grid.map_size.x * WORLD_TO_SCREEN), (int)(world->grid.map_size.y * WORLD_TO_SCREEN), DARKBROWN);
 
-        camera.zoom += GetMouseWheelMove() * deltaTime * 5.0f;
-        if (camera.zoom < 0.0f) camera.zoom = 0.0f;
+        camera.offset.y += GetMouseWheelMove() * 10.0f;
+
+        if (camera.offset.y < SCREEN_WIDTH * SCREEN_RATIO) camera.offset.y = SCREEN_WIDTH * SCREEN_RATIO;
+        if (camera.offset.y > map.y * WORLD_TO_SCREEN) camera.offset.y = map.y * WORLD_TO_SCREEN;
 
         // move entity
         // Track entity
@@ -142,11 +142,6 @@ int main(void)
             Color color = { 255, 0, 0, max(alpha, 50)};
             float y = (-cp.y - world->grid.cell_size.y);
             DrawRectangleLines((int)(cp.x * WORLD_TO_SCREEN), (int)(y * WORLD_TO_SCREEN), (int)(world->grid.cell_size.x* WORLD_TO_SCREEN), (int)(world->grid.cell_size.y * WORLD_TO_SCREEN), color);
-            // draw_number(cp.x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN, 10, i);
-
-            /*for (int j = 0; j < cells[i].n; j++) {
-                draw_number(cp.x * WORLD_TO_SCREEN, y * WORLD_TO_SCREEN + (11 * j), 10, cells[i].entites[j]);
-            }*/
         }
 
         EndMode2D();
@@ -164,8 +159,8 @@ void init_entities(world_t* world) {
     for (int i = 0; i < world->entities_count; i++) {
         world->types[i] = Walks;
 
-		world->sizes[i].x = (float)random(2, 6);
-        world->sizes[i].y = (float)random(2, 6);
+		world->sizes[i].x = (float)random(1, 2);
+        world->sizes[i].y = (float)random(1, 2);
 
         world->positions[i].x = (float)random(0, (int)(world->grid.map_size.x - 7.0f));
         world->positions[i].y = (float)random(0, (int)(world->grid.map_size.y - 7.0f));
@@ -185,11 +180,10 @@ void draw_entity(world_t* world, entity_id_t entity) {
 	DrawRectangle((int)(world->positions[entity].x * WORLD_TO_SCREEN), (int)(y * WORLD_TO_SCREEN), (int)(world->sizes[entity].x * WORLD_TO_SCREEN), (int)(world->sizes[entity].y * WORLD_TO_SCREEN), world->colors[entity]);
 }
 
-void initialise_window(Camera2D* camera) {
+void initialise_window() {
 	const int screenHeight = (int)(SCREEN_RATIO * SCREEN_WIDTH);
     InitWindow(SCREEN_WIDTH, screenHeight, "Window");
     SetTargetFPS(0);
-    BeginMode2D(*camera);
 }
 
 void display_fps() {
