@@ -26,10 +26,22 @@ typedef enum {
     Walks 
 } EntityType;
 
-typedef struct {
+typedef struct Cell {
 	uint16_t count;
 	entity_id_t* entites;
 } cell_t;
+
+typedef struct CollisionItem {
+	entity_id_t a;
+	entity_id_t b;
+	struct CollisionItem* next;
+} collision_item_t;
+
+typedef struct Collision {
+	collision_item_t* first;
+	collision_item_t* last;
+	int n;
+} collision_t;
 
 typedef struct Grid {
 	uint16_t max_entitites_per_cell;
@@ -48,13 +60,21 @@ typedef struct Grid {
 typedef struct World {
 	grid_t grid;
 	uint16_t entities_count;
-	EntityType* types;
+
+	Position* bounding_box;
 	Position* positions;
 	Size* sizes;
+	EntityType* types;
 	Velocity* velocities;
 	Location* locations;
 	Color* colors;
 	float to_screen_space;
+
+	collision_t collisions;
+
+
+	Camera2D camera;
+	Size screen;
 } world_t;
 
 void init_grid(Size map_size, Size cell_size, uint16_t maxEntitiesPerCell);

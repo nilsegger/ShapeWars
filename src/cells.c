@@ -119,7 +119,7 @@ void cells_begin_track_entites(world_t* world) {
         
         Location* location = &world->locations[i];
 
-        cells_rectangle_location(world, &world->positions[i], &world->sizes[i], location);
+        cells_rectangle_location(world, i, location);
 
         cells_add_entity(world, &world->grid.cells[location->bottom_left], i);
         if (location->bottom_right != -1)
@@ -145,7 +145,7 @@ inline void cells_location_apply_change(world_t* world, entity_id_t entity, Loca
 
 void cells_track_entity(world_t* world, entity_id_t entity) {
     Location updated = {0,0,0,0};
-    cells_rectangle_location(world, &world->positions[entity], &world->sizes[entity], &updated);
+    cells_rectangle_location(world, entity, &updated);
 
     Location* location = &world->locations[entity];
 

@@ -12,7 +12,7 @@ set(SHAPES_SOURCES
 	"include/structs.h"
 	"include/helpers.h"
 	"include/collision.h"
- "src/structs.c")
+ "src/structs.c" "include/drawing.h" "src/drawing.c")
 
 add_subdirectory(raylib)
 

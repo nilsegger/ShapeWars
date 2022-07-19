@@ -82,33 +82,22 @@ inline RectangleSide side_of_point(Position* point, Position* rectangle, Size* s
 	return result;
 }
 
-typedef struct CollisionItem {
-	entity_id_t id;
-	struct CollisionItem* next;
-} collision_item_t;
-
-typedef struct Collision {
-	collision_item_t* first;
-	collision_item_t* last;
-	int n;
-} collision_t;
-
-inline void collision_free(collision_t* collision) {
-	if (collision->n > 0 && collision->first != NULL) {
-		collision_item_t* iter = collision->first;
-		while (iter != NULL) {
-			collision_item_t* temp = iter;
-			iter = iter->next;
-			free(temp);
-		}
+inline void empty_collision(collision_t* collision) {
+	collision_item_t* iter = collision->first;
+	while (iter != NULL) {
+		collision_item_t* temp = iter;
+		iter = iter->next;
+		free(temp);
 	}
-	free(collision);
+	collision->n = 0;
+	collision->first = NULL;
+	collision->last = NULL;
 }
 
-inline void add_collision(collision_t* collision, entity_id_t id) {
+inline void add_collision(collision_t* collision, entity_id_t a, entity_id_t b) {
 	if (collision->first == NULL) {
-		collision->first = (collision_item_t*)calloc(1, sizeof(struct CollisionItem));
-		
+		collision->first = (collision_t*)calloc(1, sizeof(struct CollisionItem));
+
 		if (collision->first == NULL) {
 			fprintf(stderr, "Failed to allocated memory for CollisionItem\n");
 			return;
@@ -117,25 +106,19 @@ inline void add_collision(collision_t* collision, entity_id_t id) {
 		collision->last = collision->first;
 	}
 	else {
-
-		collision_item_t* iter = collision->first;
-		while (iter != NULL) {
-			if (iter->id == id) return;
-			iter = iter->next;
-		}
-
 		collision->last->next = (collision_item_t*)calloc(1, sizeof(struct CollisionItem));
 		if (collision->last->next == NULL) {
 			fprintf(stderr, "Failed to allocated memory for CollisionItem\n");
 			return;
 		}
-
 		collision->last = collision->last->next;
 	}
 	collision->n++;
-	collision->last->id = id;
+	collision->last->a = a;
+	collision->last->b = b;
 }
 
+/*
 inline void find_entity_collision_in_cell(world_t* world, cell_t* cell, entity_id_t entity, collision_t* collision) {	
 	if (cell->count == 1) return;
 	for (int i = 0; i < cell->count; i++) {
@@ -171,6 +154,58 @@ inline collision_t* find_collision(world_t* world, entity_id_t entity) {
 	}
 
 	return collision;
+}
+*/
+
+inline bool common_lower_cell(world_t* world, uint16_t cell, entity_id_t a, entity_id_t b) {
+	Location* la = &world->locations[a];
+	Location* lb = &world->locations[b];
+
+	if (la->bottom_left != - 1 && la->bottom_left < cell && cell_location_contains(&lb, la->bottom_left)) return true;
+	if (la->bottom_right != -1 && la->bottom_right < cell && cell_location_contains(&lb, la->bottom_right)) return true;
+	if (la->top_left != -1 && la->top_left < cell && cell_location_contains(&lb, la->top_left)) return true;
+	if (la->top_right != -1 && la->top_right < cell && cell_location_contains(&lb, la->top_right)) return true;
+
+	return false;
+}
+
+inline bool bounding_box_collide(world_t* world, entity_id_t a, entity_id_t b) {
+	// 0: bl, 1: tr
+	Position* bba = &world->bounding_box[a * 2];
+	Position* bbb = &world->bounding_box[b * 2];
+
+	return (bba[0].x < bbb[1].x
+		&& bba[1].x > bbb[0].x
+		&& bba[0].y < bbb[1].y
+		&& bba[1].y > bbb[0].y);
+}
+
+inline void find_collisions(world_t* world) {
+
+	empty_collision(&world->collisions);
+
+	for (uint16_t i = 0; i < world->grid.count; i++) {
+		cell_t* cell = &world->grid.cells[i];
+
+		if (cell->count < 2) continue;
+
+		for (uint16_t j = 0; j < cell->count - 1; j++) {
+			entity_id_t entity = cell->entites[j];
+			for (uint16_t o = j + 1; o < cell->count; o++) {
+				entity_id_t other = cell->entites[o];
+
+				// Collision between these two entities must already have been checked in a cell with lower index
+				if (common_lower_cell(world, i, entity, other)) continue;
+
+				if (!bounding_box_collide(world, entity, other)) continue;
+
+				/* TODO HERE SPECIAL COLLISION FOR RECTANGLE TO CIRCLE ETC MUST BE ADDED; EVEN ROTATED RECTS */
+				if (rectangle_collide(&world->positions[entity], &world->sizes[entity], &world->positions[other], &world->sizes[other])) {
+					add_collision(&world->collisions, entity, other);
+				}
+			}
+		}
+	}
 }
 
 #ifdef __cplusplus

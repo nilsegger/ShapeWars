@@ -39,12 +39,15 @@ int cell_neighbour_bottom_left(world_t* world, int index);
 int cell_neighbour_bottom(world_t* world, int index);
 int cell_neighbour_bottom_right(world_t* world, int index);
 
-inline void cells_rectangle_location(world_t* world, Position* bottom_left, Size* size, Location* location) {
-	Position br = {bottom_left->x + size->x, bottom_left->y};
-	Position tl = {bottom_left->x, bottom_left->y + size->y};
-	Position tr = {bottom_left->x + size->x, bottom_left->y + size->y};
+inline void cells_rectangle_location(world_t* world, entity_id_t entity, Location* location) {
 
-	location->bottom_left = cell_single_index(world, bottom_left);
+	Position* bl = &world->bounding_box[entity * 2];
+	Position* tr = &world->bounding_box[entity * 2 + 1];
+
+	Position br = {tr->x, bl->y};
+	Position tl = {bl->x, tr->y};
+
+	location->bottom_left = cell_single_index(world, bl);
 
 	location->bottom_right = cell_single_index(world, &br);
     if (location->bottom_right == location->bottom_left) location->bottom_right = -1;
@@ -53,7 +56,7 @@ inline void cells_rectangle_location(world_t* world, Position* bottom_left, Size
     if (location->top_left == location->bottom_left
         || location->top_left == location->bottom_right) location->top_left = -1;
 
-	location->top_right = cell_single_index(world, &tr);
+	location->top_right = cell_single_index(world, tr);
     if (location->top_right == location->bottom_left
 		|| location->top_right== location->bottom_right
         || location->top_right == location->top_left) location->top_right = -1;
