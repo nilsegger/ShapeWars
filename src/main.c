@@ -1,11 +1,4 @@
 ﻿
-/*
-    TODO
-        - Use stack instead of heap
-        - Remove world->to_screen_space, use camera matrix
-
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -16,6 +9,16 @@
 #include "structs.h"
 #include "cells.h"
 #include "collision.h"
+
+/*
+
+    THE PLAN
+    memory is saved like [troop1, troop2, ..., troopN, otherType1, otherType2, ..., otherTypeN, ..., inactiveWaitingBullet, inactiveWaitingBullet2, ... inactiveWaitingBulletN, PLACEHOLDER, PLACEHOLER]
+
+    During gameplay, no new memory is allocated, memory has to be preallocated.
+    When a building is placed, a the first placeholder entity is replaced with a building.
+
+*/
 
 void display_fps();
 void init_entities(world_t* world);
@@ -30,7 +33,7 @@ int main(void)
     Size map = { 50, 500 };
     Size cell = { 10, 50 };
 
-	const uint16_t entites = 1000;
+	const uint16_t entites = 5000;
     world_t* world = create_world(entites, map, cell, screen, entites);
     init_entities(world);
     cells_begin_track_entites(world);

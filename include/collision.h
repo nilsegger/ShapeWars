@@ -25,6 +25,28 @@ inline bool rectangle_collide(Position* p1, Size* s1, Position* p2, Size* s2) {
 		&& p1->y < p2->y + s2->y
 		&& p1->y + s1->y > p2->y);
 }
+/*
+
+inline Position rotate_point(Position point, float r) {
+	return (Position){ point.x* cosf(r) - sinf(point.y), point.y* cosf(r) + point.y * sinf(r) };
+}
+
+inline void rotate_rectangle(Position* p1, Size* s1, float r1, Position* bl, Position* br, Position* tl, Position* tr) {
+	*bl = rotate_point(*p1, r1);
+	*br = rotate_point((Position) { p1->x + s1->x, p1->y }, r1);
+	*tl = rotate_point((Position) { p1->x, p1->y + s1->y }, r1);
+	*tr = rotate_point((Position) { p1->x + s1->x, p1->y + s1->y }, r1);
+
+	
+}
+
+inline bool rectangle_rotated_collide(Position* p1, Size* s1, float r1, Position* p2, Size* s2, float r2) {
+
+	Position ;
+
+
+}
+*/
 
 inline bool point_left(Position* point, Position* a, Position* b) {
 	return (a->x - point->x) * (b->y - point->y) > (a->y - point->y) * (b->x - point->x);
@@ -150,39 +172,6 @@ inline collision_t* find_collision(world_t* world, entity_id_t entity) {
 
 	return collision;
 }
-
-/*
-inline void find_rectangle_collision_in_cell(Position* rectPosition, Size* rectSize, cell_t* cell, EntityType* type, Position* position, Size* size, collision_t* collision) {	
-	for (int i = 0; i < cell->n; i++) {
-		entity_id_t other = cell->entites[i];
-		if (rectangle_collide(rectPosition, rectSize, &position[other], &size[other])) {
-			add_collision(collision, cell->entites[i]);
-		}
-	}
-}
-
-inline collision_t* find_all_in_rect(Position* rectPosition, Size* rectSize, cell_t* cells, EntityType* type, Position* position, Size* size, Location* location) {
-
-	Location rectLocation;
-	cells_rectangle_location(rectPosition, rectSize, &rectLocation);
-
-	collision_t* collision = (collision_t*)calloc(1, sizeof(collision_t));
-	find_rectangle_collision_in_cell(rectPosition, rectSize, &cells[rectLocation.bottom_left], type, position, size, collision);
-	if(rectLocation.bottom_right != -1)
-		find_rectangle_collision_in_cell(rectPosition, rectSize, &cells[rectLocation.bottom_right], type, position, size, collision);
-	if(rectLocation.top_left != -1)
-		find_rectangle_collision_in_cell(rectPosition, rectSize, &cells[rectLocation.top_left], type, position, size, collision);
-	if(rectLocation.top_right != -1)
-		find_rectangle_collision_in_cell(rectPosition, rectSize, &cells[rectLocation.top_right], type, position, size, collision);
-
-	if (collision->n == 0) {
-		collision_free(collision);
-		return NULL;
-	}
-
-	return collision;
-}
-*/
 
 #ifdef __cplusplus
 }
