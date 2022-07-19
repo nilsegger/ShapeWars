@@ -26,54 +26,6 @@ void init_entities(world_t* world);
 void doPhysics(world_t* world, float deltaTime) {
 	for (entity_id_t i = 0; i < world->entities_count; i++) {
 
-		/*
-		 Position ghost = { world->positions[i].x + (world->velocities[i].x * deltaTime), world->positions[i].y + (world->velocities[i].y * deltaTime) };
-		bool didCollide = false;
-		collision_t* collision = find_collision(world, i); //find_all_in_rect(&ghost, &world->sizes[i], cells, i, type, position, size, location);
-		if (collision != NULL) {
-			collision_item_t* iter = collision->first;
-			while (iter != NULL) {
-				entity_id_t other = iter->id;
-				if (other == i) {
-					iter = iter->next;
-					continue;
-				}
-
-				didCollide = true;
-
-				Position center = { world->positions[i].x + (world->sizes->x / 2.0f) , world->positions[i].y + (world->sizes->y / 2.0f)};
-
-				switch (side_of_point(&center, &world->positions[other], &world->sizes[other])) {
-				case RECTANGLE_LEFT:
-					world->positions[i].x = world->positions[other].x - world->sizes[i].x - 0.01f;
-					world->velocities[i].x = -(float)fabs(world->velocities[i].x);
-					world->velocities[other].x = (float)fabs(world->velocities[other].x);
-					break;
-				case RECTANGLE_RIGHT:
-					world->positions[i].x = world->positions[other].x + world->sizes[other].x + 0.01f;
-					world->velocities[i].x = (float)fabs(world->velocities[i].x);
-					world->velocities[other].x = -(float)fabs(world->velocities[other].x);
-					break;
-				case RECTANGLE_TOP:
-					world->positions[i].y = world->positions[other].y + world->sizes[other].y + 0.01f;
-					world->velocities[i].y = (float)fabs(world->velocities[i].y);
-					world->velocities[other].x = -(float)fabs(world->velocities[other].x);
-					break;
-				case RECTANGLE_BOTTOM:
-					world->positions[i].y = world->positions[other].y - world->sizes[i].y - 0.01f;
-					world->velocities[i].y = -(float)fabs(world->velocities[i].y);
-					world->velocities[other].y = (float)fabs(world->velocities[other].y);
-					break;
-				}
-
-				iter = iter->next;
-			}
-			collision_free(collision);
-		}
-
-		if (!didCollide) world->positions[i] = ghost;
-		*/
-
 		world->positions[i].x += world->velocities[i].x * deltaTime;
 		world->positions[i].y += world->velocities[i].y * deltaTime;
 
@@ -104,15 +56,44 @@ void doPhysics(world_t* world, float deltaTime) {
 	}
 
 	find_collisions(world);
+
+	collision_item_t* iter = world->collisions.first;
+
+	while (iter != NULL) {
+
+		Position center = { world->positions[iter->a].x + (world->sizes[iter->a].x / 2.0f) , world->positions[iter->a].y + (world->sizes[iter->a].y / 2.0f)};
+		switch (side_of_point(&center, &world->positions[iter->b], &world->sizes[iter->b])) {
+			case RECTANGLE_LEFT:
+				world->positions[iter->a].x = world->positions[iter->b].x - world->sizes[iter->a].x - 0.01f;
+				world->velocities[iter->a].x = -(float)fabs(world->velocities[iter->a].x);
+				world->velocities[iter->b].x = (float)fabs(world->velocities[iter->b].x);
+				break;
+			case RECTANGLE_RIGHT:
+				world->positions[iter->a].x = world->positions[iter->b].x + world->sizes[iter->b].x + 0.01f;
+				world->velocities[iter->a].x = (float)fabs(world->velocities[iter->a].x);
+				world->velocities[iter->b].x = -(float)fabs(world->velocities[iter->b].x);
+				break;
+			case RECTANGLE_TOP:
+				world->positions[iter->a].y = world->positions[iter->b].y + world->sizes[iter->b].y + 0.01f;
+				world->velocities[iter->a].y = (float)fabs(world->velocities[iter->a].y);
+				world->velocities[iter->b].x = -(float)fabs(world->velocities[iter->b].x);
+				break;
+			case RECTANGLE_BOTTOM:
+				world->positions[iter->a].y = world->positions[iter->b].y - world->sizes[iter->a].y - 0.01f;
+				world->velocities[iter->a].y = -(float)fabs(world->velocities[iter->a].y);
+				world->velocities[iter->b].y = (float)fabs(world->velocities[iter->b].y);
+				break;
+		}
+
+		iter = iter->next;
+	}
 }
 
 int main(void)
 {
 	
-	const float physics_delta_time = 1.0f / 30.0f;
+	const float physics_delta_time = 1.0f / 60.0f;
 	double physics_timer_last = GetTime();
-
-	// TODO DO PHYSICS UPDATE WITH MAX DELTA TIME OF 0.3f
 
     const float aspect_ratio = 1334.0f / 750.0f;
     Size screen = { 500.0f, 500.0f * aspect_ratio };
@@ -139,10 +120,6 @@ int main(void)
         world->camera.offset.y = min(map.y * world->to_screen_space, world->camera.offset.y);
         world->camera.offset.y = max(screen.y, world->camera.offset.y);
 
-        // move entity
-        // Track entity
-        //draw entity
-
         if (IsKeyDown(32) || IsKeyPressed(83)) {
 			if (GetTime() - physics_timer_last >= physics_delta_time) {
 				doPhysics(world, physics_delta_time);
@@ -160,40 +137,17 @@ int main(void)
             Color color = { 255, 0, 0, max(alpha, 50)};
             float y = (-cp.y - world->grid.cell_size.y);
             DrawRectangleLines((int)(cp.x * world->to_screen_space), (int)(y * world->to_screen_space), (int)(world->grid.cell_size.x* world->to_screen_space), (int)(world->grid.cell_size.y * world->to_screen_space), color);
-
-            /*
-			draw_number((int)(cp.x * world->to_screen_space), (int)(y * world->to_screen_space), 20, i, RED);
-            for (int j = 0; j < cell->count; j++) {
-                draw_number((int)(cp.x * world->to_screen_space), (int)(y * world->to_screen_space) + 10 * j + 20, 10, cell->entites[j], WHITE);
-            }
-            */
         }
 
         for (entity_id_t i = 0; i < world->entities_count; i++) {
             draw_entity(world, i);
 		}
 
-		//printf("Drawn %d\n", drawn_entites);
-
 		collision_item_t* iter = world->collisions.first;
 		while (iter != NULL) {
-
 			Size s = { 1.0f, 1.0f };
 			draw_rect(world, &world->positions[iter->a], &s, RAYWHITE);
 			draw_rect(world, &world->positions[iter->b], &s, RAYWHITE);
-			// draw_circle(world, &world->positions[iter->a], 5.0f, RAYWHITE);
-			// draw_circle(world, &world->positions[iter->b], 5.0f, RAYWHITE);
-				
-			// printf("Collision found! %d:%d\n", iter->a, iter->b);
-			/*
-			int y1 = -world->positions[iter->a].y;
-			if (y1 >= camera.offset.y && y1 + world->sizes[iter->a].y <= screen.y);
-				DrawCircle(world->positions[iter->a].x * world->to_screen_space, -world->positions[iter->a].y * world->to_screen_space, 20.0f, RAYWHITE);
-			int y2 = -world->positions[iter->b].y;
-			if (y2 >= camera.offset.y && y2 + world->sizes[iter->b].y <= screen.y);
-				DrawCircle(world->positions[iter->b].x * world->to_screen_space, -world->positions[iter->b].y * world->to_screen_space, 20.0f, RAYWHITE);
-				*/
-
 			iter = iter->next;
 		}
 
