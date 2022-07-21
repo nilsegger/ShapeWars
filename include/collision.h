@@ -25,28 +25,105 @@ inline bool rectangle_collide(Position* p1, Size* s1, Position* p2, Size* s2) {
 		&& p1->y < p2->y + s2->y
 		&& p1->y + s1->y > p2->y);
 }
-/*
 
-inline Position rotate_point(Position point, float r) {
-	return (Position){ point.x* cosf(r) - sinf(point.y), point.y* cosf(r) + point.y * sinf(r) };
-}
+inline bool is_separating_axis_rectangles(Position* axis, Position* r1, Position* r2, Position* push) {
 
-inline void rotate_rectangle(Position* p1, Size* s1, float r1, Position* bl, Position* br, Position* tl, Position* tr) {
-	*bl = rotate_point(*p1, r1);
-	*br = rotate_point((Position) { p1->x + s1->x, p1->y }, r1);
-	*tl = rotate_point((Position) { p1->x, p1->y + s1->y }, r1);
-	*tr = rotate_point((Position) { p1->x + s1->x, p1->y + s1->y }, r1);
+	float min1 = dot_product(axis, r1);
+	float max1 = min1;
 
-	
+	float min2 = dot_product(axis, r2);
+	float max2 = min2;
+
+	for (int i = 1; i < 3; i++) {
+		float p1 = dot_product(axis, &r1[i]);
+		min1 = min(min1, p1);
+		min1 = min(min1, p1);
+
+		float p2 = dot_product(axis, &r2[i]);
+		min2 = min(min2, p2);
+		min2 = min(min2, p2);
+	}
+
+	if (max1 > min2 && max2 > min1) {
+		float distance = min(max2 - min1, max1 - min2);
+		float d_squared = (distance / dot_product(axis, axis) + 1e-10);
+		push->x = axis->x * d_squared;
+		push->y = axis->y * d_squared;
+		return false;
+	}
+	return false;
 }
 
 inline bool rectangle_rotated_collide(Position* p1, Size* s1, float r1, Position* p2, Size* s2, float r2) {
 
-	Position ;
+	Position rr1[4];
+	rotate_rectangle(p1, s1, r1, &rr1[1], &rr1[2], rr1, &rr1[3]);
+	Position rr2[4];
+	rotate_rectangle(p2, s2, r2, &rr2[1], &rr2[2], rr2, &rr2[3]);
 
+	for (int i = 0; i < 4; i++) {
+		Position axis = { rr1[(i + 1) % 4].x - rr1[i].x, rr1[(i + 1)].y - rr1[i].y};
+		orth(&axis);
 
+		Position push_vector = {0,0};
+		if (is_separating_axis_rectangles(&axis, rr1, rr2, &push_vector)) {
+			return false;
+		}
+	}
+
+	/*
+	for (int i = 0; i < 4; i++) {
+		Position axis = { rr2[(i + 1) % 4].x - rr2[i].x, rr2[(i + 1)].y - rr2[i].y};
+		orth(&axis);
+
+		Position push_vector = {0,0};
+		if (is_separating_axis_rectangles(&axis, rr1, rr2, &push_vector)) {
+			return false;
+		}
+
+	}
+	*/
+
+	return true;
+
+	/*
+	Position offset = {p1->x - p2->x, p1->y - p2->y};
+
+	for (int i = 0; i < 4; i++) {
+		Position axis = (Position){ -rr1[(i + 1) % 4].y - rr1[i].y, rr1[(i+1)%4].x - rr1[i].x};
+
+		float magnitude = sqrtf((axis.x * axis.x) + (axis.y * axis.y));
+		if (magnitude != 0.0f) {
+			axis.x *= 1.0f / magnitude;
+			axis.y *= 1.0f / magnitude;
+		}
+
+		float dmin1 = (axis.x * rr1[0].x) + (axis.y * rr1[0].y);
+		float dmax1 = dmin1;
+
+		float dmin2 = (axis.x * rr2[0].x) + (axis.y * rr2[0].y);
+		float dmax2 = dmin2;
+
+		for (int j = 1; j < 4; j++) {
+			float dot1 = (axis.x * rr1[j].x) + (axis.y * rr1[j].y);
+			dmin1 = min(dmin1, dot1);
+			dmax1 = max(dmax1, dot1);
+
+			float dot2 = (axis.x * rr2[j].x) + (axis.y * rr2[j].y);
+			dmin2 = min(dmin2, dot2);
+			dmax2 = max(dmax2, dot2);
+		}
+
+		float scalerOffset = (axis.x * offset.x) + (axis.y * offset.y);
+		dmin1 += scalerOffset;
+		dmax1 += scalerOffset;
+
+		if (dmin1 - dmax2 > 0.0f || dmin2 - dmax1 > 0.0f) return false;
+	}
+
+	return true;
+	*/	
 }
-*/
 
 inline bool point_left(Position* point, Position* a, Position* b) {
 	return (a->x - point->x) * (b->y - point->y) > (a->y - point->y) * (b->x - point->x);
@@ -96,7 +173,7 @@ inline void empty_collision(collision_t* collision) {
 
 inline void add_collision(collision_t* collision, entity_id_t a, entity_id_t b) {
 	if (collision->first == NULL) {
-		collision->first = (collision_t*)calloc(1, sizeof(struct CollisionItem));
+		collision->first = (collision_item_t*)calloc(1, sizeof(struct CollisionItem));
 
 		if (collision->first == NULL) {
 			fprintf(stderr, "Failed to allocated memory for CollisionItem\n");
@@ -118,53 +195,14 @@ inline void add_collision(collision_t* collision, entity_id_t a, entity_id_t b) 
 	collision->last->b = b;
 }
 
-/*
-inline void find_entity_collision_in_cell(world_t* world, cell_t* cell, entity_id_t entity, collision_t* collision) {	
-	if (cell->count == 1) return;
-	for (int i = 0; i < cell->count; i++) {
-		entity_id_t other = cell->entites[i];
-		if (entity == other) continue;
-		if (rectangle_collide(&world->positions[entity], &world->sizes[entity], &world->positions[other], &world->sizes[other])) {
-			add_collision(collision, cell->entites[i]);
-		}
-	}
-}
-
-inline collision_t* find_collision(world_t* world, entity_id_t entity) {
-	collision_t* collision = (collision_t*)calloc(1, sizeof(struct Collision));
-
-	if (collision == NULL) {
-		fprintf(stderr, "Cannot allocate memory for collision.\n");
-		return NULL;
-	}
-
-	Location location = world->locations[entity];
-
-	find_entity_collision_in_cell(world, &world->grid.cells[location.bottom_left], entity, collision);
-	if(location.bottom_right != -1)
-		find_entity_collision_in_cell(world, &world->grid.cells[location.bottom_right], entity, collision);
-	if(location.top_left != -1)
-		find_entity_collision_in_cell(world, &world->grid.cells[location.top_left], entity, collision);
-	if(location.top_right != -1)
-		find_entity_collision_in_cell(world, &world->grid.cells[location.top_right], entity, collision);
-
-	if (collision->n == 0) {
-		collision_free(collision);
-		return NULL;
-	}
-
-	return collision;
-}
-*/
-
 inline bool common_lower_cell(world_t* world, uint16_t cell, entity_id_t a, entity_id_t b) {
 	Location* la = &world->locations[a];
 	Location* lb = &world->locations[b];
 
-	if (la->bottom_left != - 1 && la->bottom_left < cell && cell_location_contains(&lb, la->bottom_left)) return true;
-	if (la->bottom_right != -1 && la->bottom_right < cell && cell_location_contains(&lb, la->bottom_right)) return true;
-	if (la->top_left != -1 && la->top_left < cell && cell_location_contains(&lb, la->top_left)) return true;
-	if (la->top_right != -1 && la->top_right < cell && cell_location_contains(&lb, la->top_right)) return true;
+	if (la->bottom_left != - 1 && la->bottom_left < cell && cell_location_contains(lb, la->bottom_left)) return true;
+	if (la->bottom_right != -1 && la->bottom_right < cell && cell_location_contains(lb, la->bottom_right)) return true;
+	if (la->top_left != -1 && la->top_left < cell && cell_location_contains(lb, la->top_left)) return true;
+	if (la->top_right != -1 && la->top_right < cell && cell_location_contains(lb, la->top_right)) return true;
 
 	return false;
 }
@@ -199,8 +237,14 @@ inline void find_collisions(world_t* world) {
 
 				if (!bounding_box_collide(world, entity, other)) continue;
 
+				if (world->rotations[entity] == 0.0f && world->rotations[other] == 0.0f) {
+					add_collision(&world->collisions, entity, other);
+					continue;
+				}
+
+				if(rectangle_rotated_collide(&world->positions[entity], &world->sizes[entity], world->rotations[entity], &world->positions[other], &world->sizes[other], world->rotations[other])) {
 				/* TODO HERE SPECIAL COLLISION FOR RECTANGLE TO CIRCLE ETC MUST BE ADDED; EVEN ROTATED RECTS */
-				if (rectangle_collide(&world->positions[entity], &world->sizes[entity], &world->positions[other], &world->sizes[other])) {
+				// if (rectangle_collide(&world->positions[entity], &world->sizes[entity], &world->positions[other], &world->sizes[other])) {
 					add_collision(&world->collisions, entity, other);
 				}
 			}

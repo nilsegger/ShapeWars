@@ -64,6 +64,7 @@ typedef struct World {
 	Position* bounding_box;
 	Position* positions;
 	Size* sizes;
+	float* rotations;
 	EntityType* types;
 	Velocity* velocities;
 	Location* locations;

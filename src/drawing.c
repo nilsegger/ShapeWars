@@ -1,7 +1,7 @@
-#include "drawing.h"
-
 #include <stdio.h>
 
+#include "drawing.h"
+#include "helpers.h"
 
 bool rect_in_camera_view(world_t* world, Position* p, Size* s) {
 	return !(p->y * world->to_screen_space > world->camera.offset.y || (p->y + s->y) * world->to_screen_space < world->camera.offset.y - world->screen.y);
@@ -25,7 +25,23 @@ void draw_rect(world_t* world, Position* position, Size* size, Color color) {
 void draw_entity(world_t* world, entity_id_t entity) {
 	if (rect_in_camera_view(world, &world->positions[entity], &world->sizes[entity])) {
 		float y = -world->positions[entity].y - world->sizes[entity].y;
-		DrawRectangle((int)(world->positions[entity].x * world->to_screen_space), (int)(y * world->to_screen_space), (int)(world->sizes[entity].x * world->to_screen_space), (int)(world->sizes[entity].y * world->to_screen_space), world->colors[entity]);
+		if (world->rotations[entity] == 0.0f) {
+			DrawRectangle((int)(world->positions[entity].x * world->to_screen_space), (int)(y * world->to_screen_space), (int)(world->sizes[entity].x * world->to_screen_space), (int)(world->sizes[entity].y * world->to_screen_space), world->colors[entity]);
+		}
+		else {
+			Rectangle rect = { (world->positions[entity].x + world->sizes[entity].x / 2.0f) * world->to_screen_space , -(world->positions[entity].y + (world->sizes[entity].y / 2.0f)) * world->to_screen_space, world->sizes[entity].x * world->to_screen_space, world->sizes[entity].y * world->to_screen_space };
+			DrawRectanglePro(rect, (Vector2) { rect.width / 2.0f, rect.height / 2.0f }, -world->rotations[entity], world->colors[entity]);
+
+			/*
+			Position pivot = (Position){world->positions[entity].x + (world->sizes[entity].x / 2.0f), world->positions[entity].y + (world->sizes[entity].y / 2.0f)};
+			Position bottom_left = rotate_point(world->positions[entity], &pivot, world->rotations[entity] * DEG2RAD);
+			draw_circle(world, &bottom_left, 4.0f, BLACK);
+
+			Position top_right = rotate_point((Position) { world->positions[entity].x + world->sizes[entity].x, world->positions[entity].y + world->sizes[entity].y }, & pivot, world->rotations[entity] * DEG2RAD);
+			draw_circle(world, &top_right, 4.0f, BLUE);
+			*/
+
+		}
 	}
 }
 

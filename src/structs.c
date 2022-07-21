@@ -42,6 +42,7 @@ world_t* create_world(uint16_t entites, Size map_size, Size cell_size, Size scre
 	world->entities_count = entites;
 	world->bounding_box = (Position*)calloc((size_t)entites * 2, sizeof(Position));
 	world->positions = (Position*)calloc(entites, sizeof(Position));
+	world->rotations = (float*)calloc(entites, sizeof(float));
 	world->sizes = (Size*)calloc(entites, sizeof(Size));
 	world->types = (EntityType*)calloc(entites, sizeof(EntityType));
 	world->velocities = (Velocity*)calloc(entites, sizeof(Velocity));

@@ -28,6 +28,7 @@ void doPhysics(world_t* world, float deltaTime) {
 
 		world->positions[i].x += world->velocities[i].x * deltaTime;
 		world->positions[i].y += world->velocities[i].y * deltaTime;
+		world->rotations[i] += 45.0f * deltaTime;
 
 		if (world->positions[i].x < 0.0f) {
 			world->positions[i].x = 0.0f;
@@ -57,6 +58,7 @@ void doPhysics(world_t* world, float deltaTime) {
 
 	find_collisions(world);
 
+	/*
 	collision_item_t* iter = world->collisions.first;
 
 	while (iter != NULL) {
@@ -87,6 +89,7 @@ void doPhysics(world_t* world, float deltaTime) {
 
 		iter = iter->next;
 	}
+	*/
 }
 
 int main(void)
@@ -98,15 +101,15 @@ int main(void)
     const float aspect_ratio = 1334.0f / 750.0f;
     Size screen = { 500.0f, 500.0f * aspect_ratio };
 
-    Size map = { 50, 500 };
+    Size map = { 50, 500};
     Size cell = { 10, 50 };
 
-	const uint16_t entites = 1000;
+	const uint16_t entites = 100;
     world_t* world = create_world(entites, map, cell, screen, entites);
     init_entities(world);
     cells_begin_track_entites(world);
 
-	InitWindow(screen.x, screen.y, "Window");
+	InitWindow((int)screen.x, (int)screen.y, "Window");
     SetTargetFPS(0);
     
     while (!WindowShouldClose()) {
@@ -182,5 +185,7 @@ void init_entities(world_t* world) {
         world->colors[i].r = random(0, 255);
         world->colors[i].g = random(0, 255);
         world->colors[i].b = random(0, 255);
+
+		world->rotations[i] = (float)random(0,360);
     };
 }
