@@ -34,6 +34,7 @@ typedef struct Cell {
 typedef struct CollisionItem {
 	entity_id_t a;
 	entity_id_t b;
+	Position* offset;
 	struct CollisionItem* next;
 } collision_item_t;
 

@@ -34,32 +34,34 @@ inline bool is_separating_axis_rectangles(Position* axis, Position* r1, Position
 	float min2 = dot_product(axis, r2);
 	float max2 = min2;
 
-	for (int i = 1; i < 3; i++) {
+	for (int i = 1; i < 4; i++) {
 		float p1 = dot_product(axis, &r1[i]);
 		min1 = min(min1, p1);
-		min1 = min(min1, p1);
+		max1 = max(max1, p1);
 
 		float p2 = dot_product(axis, &r2[i]);
 		min2 = min(min2, p2);
-		min2 = min(min2, p2);
+		max2 = max(max2, p2);
 	}
 
-	if (max1 > min2 && max2 > min1) {
+	if (max1 >= min2 && max2 >= min1) {
 		float distance = min(max2 - min1, max1 - min2);
 		float d_squared = (distance / dot_product(axis, axis) + 1e-10);
 		push->x = axis->x * d_squared;
 		push->y = axis->y * d_squared;
 		return false;
 	}
-	return false;
+	return true;
 }
 
-inline bool rectangle_rotated_collide(Position* p1, Size* s1, float r1, Position* p2, Size* s2, float r2) {
+inline bool rectangle_rotated_collide(Position* p1, Size* s1, float r1, Position* p2, Size* s2, float r2, Position* offset) {
 
 	Position rr1[4];
 	rotate_rectangle(p1, s1, r1, &rr1[1], &rr1[2], rr1, &rr1[3]);
 	Position rr2[4];
 	rotate_rectangle(p2, s2, r2, &rr2[1], &rr2[2], rr2, &rr2[3]);
+
+	float mpv_dot = 0.0f;
 
 	for (int i = 0; i < 4; i++) {
 		Position axis = { rr1[(i + 1) % 4].x - rr1[i].x, rr1[(i + 1)].y - rr1[i].y};
@@ -69,9 +71,20 @@ inline bool rectangle_rotated_collide(Position* p1, Size* s1, float r1, Position
 		if (is_separating_axis_rectangles(&axis, rr1, rr2, &push_vector)) {
 			return false;
 		}
+
+		if (i == 0) {
+			*offset = push_vector;
+			mpv_dot = dot_product(offset, offset);
+			continue;
+		}
+		
+		float npd = dot_product(&push_vector, &push_vector);
+		if (npd < mpv_dot) {
+			*offset = push_vector;
+			mpv_dot = npd;
+		}
 	}
 
-	/*
 	for (int i = 0; i < 4; i++) {
 		Position axis = { rr2[(i + 1) % 4].x - rr2[i].x, rr2[(i + 1)].y - rr2[i].y};
 		orth(&axis);
@@ -81,48 +94,23 @@ inline bool rectangle_rotated_collide(Position* p1, Size* s1, float r1, Position
 			return false;
 		}
 
+		float npd = dot_product(&push_vector, &push_vector);
+		if (npd < mpv_dot) {
+			*offset = push_vector;
+			mpv_dot = npd;
+		}
 	}
-	*/
 
-	return true;
+	Position center1 = { p1->x + (s1->x / 2.0f), p1->y + (s1->y / 2.0f)};
+	Position center2 = { p2->x + (s2->x / 2.0f), p2->y + (s2->y / 2.0f)};
+	Position c1c2 = { center2.x - center1.x, center2.y - center1.y };
 
-	/*
-	Position offset = {p1->x - p2->x, p1->y - p2->y};
-
-	for (int i = 0; i < 4; i++) {
-		Position axis = (Position){ -rr1[(i + 1) % 4].y - rr1[i].y, rr1[(i+1)%4].x - rr1[i].x};
-
-		float magnitude = sqrtf((axis.x * axis.x) + (axis.y * axis.y));
-		if (magnitude != 0.0f) {
-			axis.x *= 1.0f / magnitude;
-			axis.y *= 1.0f / magnitude;
-		}
-
-		float dmin1 = (axis.x * rr1[0].x) + (axis.y * rr1[0].y);
-		float dmax1 = dmin1;
-
-		float dmin2 = (axis.x * rr2[0].x) + (axis.y * rr2[0].y);
-		float dmax2 = dmin2;
-
-		for (int j = 1; j < 4; j++) {
-			float dot1 = (axis.x * rr1[j].x) + (axis.y * rr1[j].y);
-			dmin1 = min(dmin1, dot1);
-			dmax1 = max(dmax1, dot1);
-
-			float dot2 = (axis.x * rr2[j].x) + (axis.y * rr2[j].y);
-			dmin2 = min(dmin2, dot2);
-			dmax2 = max(dmax2, dot2);
-		}
-
-		float scalerOffset = (axis.x * offset.x) + (axis.y * offset.y);
-		dmin1 += scalerOffset;
-		dmax1 += scalerOffset;
-
-		if (dmin1 - dmax2 > 0.0f || dmin2 - dmax1 > 0.0f) return false;
+	if (dot_product(offset, &c1c2) > 0) {
+		offset->x = -offset->x;
+		offset->y = -offset->y;
 	}
 
 	return true;
-	*/	
 }
 
 inline bool point_left(Position* point, Position* a, Position* b) {
@@ -162,6 +150,7 @@ inline RectangleSide side_of_point(Position* point, Position* rectangle, Size* s
 inline void empty_collision(collision_t* collision) {
 	collision_item_t* iter = collision->first;
 	while (iter != NULL) {
+		if (iter->offset != NULL) free(iter->offset);
 		collision_item_t* temp = iter;
 		iter = iter->next;
 		free(temp);
@@ -171,7 +160,7 @@ inline void empty_collision(collision_t* collision) {
 	collision->last = NULL;
 }
 
-inline void add_collision(collision_t* collision, entity_id_t a, entity_id_t b) {
+inline void add_collision(collision_t* collision, entity_id_t a, entity_id_t b, Position* offset) {
 	if (collision->first == NULL) {
 		collision->first = (collision_item_t*)calloc(1, sizeof(struct CollisionItem));
 
@@ -193,6 +182,7 @@ inline void add_collision(collision_t* collision, entity_id_t a, entity_id_t b) 
 	collision->n++;
 	collision->last->a = a;
 	collision->last->b = b;
+	collision->last->offset = offset;
 }
 
 inline bool common_lower_cell(world_t* world, uint16_t cell, entity_id_t a, entity_id_t b) {
@@ -238,14 +228,15 @@ inline void find_collisions(world_t* world) {
 				if (!bounding_box_collide(world, entity, other)) continue;
 
 				if (world->rotations[entity] == 0.0f && world->rotations[other] == 0.0f) {
-					add_collision(&world->collisions, entity, other);
+					add_collision(&world->collisions, entity, other, NULL);
 					continue;
 				}
 
-				if(rectangle_rotated_collide(&world->positions[entity], &world->sizes[entity], world->rotations[entity], &world->positions[other], &world->sizes[other], world->rotations[other])) {
+				Position* offset = (Position*)calloc(1, sizeof(Position));
+				if(rectangle_rotated_collide(&world->positions[entity], &world->sizes[entity], world->rotations[entity], &world->positions[other], &world->sizes[other], world->rotations[other], offset)) {
 				/* TODO HERE SPECIAL COLLISION FOR RECTANGLE TO CIRCLE ETC MUST BE ADDED; EVEN ROTATED RECTS */
 				// if (rectangle_collide(&world->positions[entity], &world->sizes[entity], &world->positions[other], &world->sizes[other])) {
-					add_collision(&world->collisions, entity, other);
+					add_collision(&world->collisions, entity, other, offset);
 				}
 			}
 		}

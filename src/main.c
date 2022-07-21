@@ -58,11 +58,12 @@ void doPhysics(world_t* world, float deltaTime) {
 
 	find_collisions(world);
 
-	/*
 	collision_item_t* iter = world->collisions.first;
 
 	while (iter != NULL) {
 
+
+		/*
 		Position center = { world->positions[iter->a].x + (world->sizes[iter->a].x / 2.0f) , world->positions[iter->a].y + (world->sizes[iter->a].y / 2.0f)};
 		switch (side_of_point(&center, &world->positions[iter->b], &world->sizes[iter->b])) {
 			case RECTANGLE_LEFT:
@@ -86,10 +87,16 @@ void doPhysics(world_t* world, float deltaTime) {
 				world->velocities[iter->b].y = (float)fabs(world->velocities[iter->b].y);
 				break;
 		}
+		*/
+
+		/*if (iter->offset != NULL) {
+			world->positions[iter->a].x += iter->offset->x;
+			world->positions[iter->a].y += iter->offset->y;
+			printf("%f:%f\n", iter->offset->x, iter->offset->y);
+		}*/
 
 		iter = iter->next;
 	}
-	*/
 }
 
 int main(void)
