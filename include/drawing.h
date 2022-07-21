@@ -15,6 +15,7 @@ extern "C" {
 
 	void draw_number(world_t* world, Position* position, int size, int n, Color color);
 	void draw_rect(world_t* world, Position* position, Size* size, Color color);
+	void draw_rect_lines(world_t* world, Position* position, Size* size, Color color);
 	void draw_circle(world_t* world, Position* position, float radius, Color color);
 
 #ifdef __cplusplus

@@ -40,6 +40,7 @@ world_t* create_world(uint16_t entites, Size map_size, Size cell_size, Size scre
 	init_grid(&world->grid, map_size, cell_size, maxEntitiesPerCell);
 
 	world->entities_count = entites;
+	world->alive = (bool*)calloc(entites, sizeof(bool));
 	world->bounding_box = (Position*)calloc((size_t)entites * 2, sizeof(Position));
 	world->positions = (Position*)calloc(entites, sizeof(Position));
 	world->rotations = (float*)calloc(entites, sizeof(float));

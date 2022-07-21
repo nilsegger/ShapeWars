@@ -1,6 +1,8 @@
 #ifndef INCLUDE_COLLISION_H
 #define INCLUDE_COLLISION_H
 
+#include <stdio.h>
+
 #include <raylib.h>
 
 #include "helpers.h"

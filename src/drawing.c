@@ -22,6 +22,13 @@ void draw_rect(world_t* world, Position* position, Size* size, Color color) {
 	}
 }
 
+void draw_rect_lines(world_t* world, Position* position, Size* size, Color color) {
+	if (rect_in_camera_view(world, position, size)) {
+		float y = -position->y - size->y;
+		DrawRectangleLines((int)(position->x * world->to_screen_space), (int)(y * world->to_screen_space), (int)(size->x * world->to_screen_space), (int)(size->y * world->to_screen_space), color);
+	}
+}
+
 void draw_entity(world_t* world, entity_id_t entity) {
 	if (rect_in_camera_view(world, &world->positions[entity], &world->sizes[entity])) {
 		float y = -world->positions[entity].y - world->sizes[entity].y;

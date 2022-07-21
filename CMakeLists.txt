@@ -10,9 +10,12 @@ set(SHAPES_SOURCES
 	"include/cells.h"
 	"src/cells.c"
 	"include/structs.h"
+	"src/structs.c"
 	"include/helpers.h"
 	"include/collision.h"
- "src/structs.c" "include/drawing.h" "src/drawing.c" )
+	"include/drawing.h"
+	"src/drawing.c"
+	"include/levels.h"  "src/levels.c")
 
 add_subdirectory(raylib)
 

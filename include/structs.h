@@ -63,6 +63,7 @@ typedef struct World {
 	uint16_t entities_count;
 
 	Position* bounding_box;
+	bool* alive;
 	Position* positions;
 	Size* sizes;
 	float* rotations;
@@ -74,9 +75,13 @@ typedef struct World {
 
 	collision_t collisions;
 
-
 	Camera2D camera;
 	Size screen;
+
+
+	void(*physics_func)(struct World*, float deltaTime);
+	void(*draw_func)(struct World*);
+
 } world_t;
 
 void init_grid(Size map_size, Size cell_size, uint16_t maxEntitiesPerCell);
