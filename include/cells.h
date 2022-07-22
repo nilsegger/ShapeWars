@@ -1,29 +1,13 @@
 #ifndef INCLUDE_CELLS_H
 #define INCLUDE_CELLS_H
 
-/*
-#define MAP_WIDTH 100 // 100m
-#define MAP_HEIGHT 200 // 1km
-
-#define CELL_WIDTH 10 
-#define CELL_HEIGHT 10 
-
-#define CELL_ROWS (MAP_HEIGHT / CELL_HEIGHT)
-#define CELL_COLS (MAP_WIDTH / CELL_WIDTH)
-
-// Should be max 65536
-#define CELLS_COUNT (MAP_WIDTH / CELL_WIDTH * MAP_HEIGHT / CELL_HEIGHT)
-
-// THERE IS A BUG WHERE IF MAX_ENTITES_PER_CELL IS BIGGER THAN ENTITES THE PROGRAM WILL CRASH?
-#define MAX_ENTITES_PER_CELL 100
-*/
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 void cells_begin_track_entites(world_t* world);
 void cells_track_entity(world_t* world, entity_id_t entity);
+void cells_remove_tracking(world_t* world, entity_id_t entity);
 Position cell_position(world_t* world, int index);
 int cell_row(world_t* world, int index);
 int cell_col(world_t* world, int index);

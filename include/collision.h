@@ -48,7 +48,7 @@ inline bool is_separating_axis_rectangles(Position* axis, Position* r1, Position
 
 	if (max1 >= min2 && max2 >= min1) {
 		float distance = min(max2 - min1, max1 - min2);
-		float d_squared = (distance / dot_product(axis, axis) + 1e-10);
+		float d_squared = (distance / dot_product(axis, axis) + 1e-10f);
 		push->x = axis->x * d_squared;
 		push->y = axis->y * d_squared;
 		return false;
@@ -237,12 +237,83 @@ inline void find_collisions(world_t* world) {
 				Position* offset = (Position*)calloc(1, sizeof(Position));
 				if(rectangle_rotated_collide(&world->positions[entity], &world->sizes[entity], world->rotations[entity], &world->positions[other], &world->sizes[other], world->rotations[other], offset)) {
 				/* TODO HERE SPECIAL COLLISION FOR RECTANGLE TO CIRCLE ETC MUST BE ADDED; EVEN ROTATED RECTS */
-				// if (rectangle_collide(&world->positions[entity], &world->sizes[entity], &world->positions[other], &world->sizes[other])) {
 					add_collision(&world->collisions, entity, other, offset);
 				}
 			}
 		}
 	}
+}
+
+inline bool find_closest_center_to_center(world_t* world, entity_id_t entity, EntityType filter, entity_id_t* closest_entity) {
+	
+	Position center = { world->positions[entity].x + world->sizes[entity].x / 2.0f, world->positions[entity].y + world->sizes[entity].y / 2.0f };
+
+	int bottom_index = cell_row_last(world, cell_row(world, world->locations[entity].bottom_left));
+	int top_index = world->locations[entity].top_left == -1 ? world->locations[entity].bottom_left : world->locations[entity].top_left;
+
+	top_index = cell_row_first(world, cell_row(world, top_index));
+
+	bool finish_row = false;
+
+	*closest_entity = entity;
+	float squared_distance = 0.0f;
+
+	while (bottom_index > 0 || top_index < world->grid.count) {
+		
+		if (bottom_index >= 0) {
+			cell_t* bottom_cell = &world->grid.cells[bottom_index];
+			for (uint16_t i = 0; i < bottom_cell->count; i++) {
+				entity_id_t other = bottom_cell->entites[i];
+				if (other == entity) continue;
+
+				if (filter != ENTITY_NONE && world->types[other] != filter) continue;
+
+				Position otherCenter = { world->positions[other].x + world->sizes[other].x / 2.0f, world->positions[other].y + world->sizes[other].y / 2.0f };
+				Position offset = { otherCenter.x - center.x, otherCenter.y - center.y };
+				float distance_to_other = (offset.x * offset.x) + (offset.y * offset.y);
+
+				// No entity found yet
+				if (*closest_entity == entity || squared_distance > distance_to_other) {
+					*closest_entity = other;
+					squared_distance = distance_to_other;
+				}
+			}
+		}
+
+		if (top_index <= world->grid.count - 1) {
+			cell_t* top_cell = &world->grid.cells[top_index];
+			for (uint16_t i = 0; i < top_cell->count; i++) {
+				entity_id_t other = top_cell->entites[i];
+				if (other == entity) continue;
+
+				if (filter != ENTITY_NONE && world->types[other] != filter) continue;
+
+				Position otherCenter = { world->positions[other].x + world->sizes[other].x / 2.0f, world->positions[other].y + world->sizes[other].y / 2.0f };
+				Position offset = { otherCenter.x - center.x, otherCenter.y - center.y };
+				float distance_to_other = (offset.x * offset.x) + (offset.y * offset.y);
+
+				// No entity found yet
+				if (*closest_entity == entity || squared_distance > distance_to_other) {
+					*closest_entity = other;
+					squared_distance = distance_to_other;
+				}
+			}
+		}
+
+		if (bottom_index - 1 > 0 && bottom_index - 1 < cell_row_first(world, cell_row(world, bottom_index)) && *closest_entity != entity) {
+			if (finish_row) break;
+			else finish_row = true;
+		}
+		bottom_index--;
+
+		if (top_index + 1 < world->grid.count && top_index + 1 > cell_row_last(world, cell_row(world, top_index)) && *closest_entity != entity) {
+			if (finish_row) break;
+			else finish_row = true;
+		}
+		top_index += 1;
+	}
+
+	return *closest_entity != entity;
 }
 
 #ifdef __cplusplus

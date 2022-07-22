@@ -62,6 +62,6 @@ void draw_number(world_t* world, Position* position, int size, int n, Color colo
 	if(text_in_camera_view(world, position, size)) {
 		char number[20];
 		snprintf(number, 20, "%d", n);
-		DrawText(number, position->x, position->y, size, color);
+		DrawText(number, position->x * world->to_screen_space, -position->y * world->to_screen_space - size, size, color);
 	}
 }

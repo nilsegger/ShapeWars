@@ -4,6 +4,7 @@
 #include "structs.h"
 
 void init_grid(grid_t* grid, Size map_size, Size cell_size, uint16_t maxEntitiesPerCell) {
+
 	grid->max_entitites_per_cell = maxEntitiesPerCell;
 	grid->cell_size = cell_size;
 	grid->map_size = map_size;
@@ -49,6 +50,7 @@ world_t* create_world(uint16_t entites, Size map_size, Size cell_size, Size scre
 	world->velocities = (Velocity*)calloc(entites, sizeof(Velocity));
 	world->locations = (Location*)calloc(entites, sizeof(Location));
 	world->colors = (Color*)calloc(entites, sizeof(Color));
+	world->entity_specific = (void**)calloc(entites, sizeof(void*));
 
 	world->to_screen_space = screen.x / map_size.x;
 
@@ -65,10 +67,14 @@ void free_world(world_t* world) {
 
 	free(world->positions);
 	free(world->sizes);
+	free(world->alive);
 	free(world->types);
 	free(world->velocities);
 	free(world->locations);
 	free(world->colors);
+	free(world->rotations);
+	free(world->bounding_box);
+	free(world->entity_specific);
 
 	free(world);
 }

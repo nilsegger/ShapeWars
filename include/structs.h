@@ -22,8 +22,10 @@ typedef struct {
 } Location;
 
 typedef enum {
-    None,
-    Walks 
+	ENTITY_NONE,
+	ENTITY_TOWER,
+	ENTITY_TOWER_SHOT,
+	ENTITY_ZOMBIE	
 } EntityType;
 
 typedef struct Cell {
@@ -71,6 +73,9 @@ typedef struct World {
 	Velocity* velocities;
 	Location* locations;
 	Color* colors;
+
+	void** entity_specific;
+
 	float to_screen_space;
 
 	collision_t collisions;
@@ -89,6 +94,11 @@ void free_grid_components(grid_t* grid);
 
 world_t* create_world(uint16_t entites, Size map_size, Size cell_size, Size screen, uint16_t maxEntitiesPerCell);
 void free_world(world_t* world);
+
+
+typedef struct Tower {
+	float cooldown;
+} tower_t;
 
 #ifdef __cplusplus
 }

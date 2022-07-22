@@ -1,15 +1,5 @@
-﻿
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+﻿#include <raylib.h>
 
-#include <raylib.h>
-
-#include "helpers.h"
-#include "structs.h"
-#include "cells.h"
-#include "collision.h"
-#include "drawing.h"
 #include "levels.h"
 
 /*
@@ -31,7 +21,9 @@ int main(void)
     const float aspect_ratio = 1334.0f / 750.0f;
     Size screen = { 500.0f, 500.0f * aspect_ratio };
 
-    world_t* world = debug_level(screen);
+    world_t* world = single_tower(screen);//debug_level(screen);
+
+    cells_begin_track_entites(world);
 
 	InitWindow((int)screen.x, (int)screen.y, "Window");
     SetTargetFPS(0);
@@ -41,7 +33,7 @@ int main(void)
         ClearBackground(BLACK);
         float deltaTime = GetFrameTime();
 
-		if (GetTime() - physics_timer_last >= physics_delta_time) {
+		if (world->physics_func != NULL && GetTime() - physics_timer_last >= physics_delta_time) {
 			world->physics_func(world, physics_delta_time);
 			physics_timer_last = GetTime();
 		}

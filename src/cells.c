@@ -39,7 +39,7 @@ int cell_single_index(world_t* world, Position* position) {
 
     int index = (int)(position->y / world->grid.cell_size.y) * world->grid.cols + (int)(position->x / world->grid.cell_size.x);
     if (index > world->grid.count - 1) {
-        fprintf(stderr, "return Position out of cell range. %d %d\n", index, world->grid.count - 1);
+        fprintf(stderr, "return Position out of cell range. %f:%f\nMax allowed %f:%f\nCells %d/%d\ncell size %f:%f\nworld cols %d\n", position->x, position->y, world->grid.map_size.x, world->grid.map_size.y, index, world->grid.count - 1, world->grid.cell_size.x, world->grid.cell_size.y, world->grid.cols);
         return world->grid.count - 1;
     }
     return index;
@@ -113,9 +113,34 @@ void cells_remove_entity(cell_t* cell, entity_id_t entity) {
     fprintf(stderr, "Entity not in cell...\n");
 }
 
+void cells_remove_tracking(world_t* world, entity_id_t entity) {
+    
+    if (world->locations[entity].bottom_left != -1) cells_remove_entity(&world->grid.cells[world->locations[entity].bottom_left], entity);
+    if (world->locations[entity].bottom_right != -1) cells_remove_entity(&world->grid.cells[world->locations[entity].bottom_right], entity);
+    if (world->locations[entity].top_left != -1) cells_remove_entity(&world->grid.cells[world->locations[entity].top_left], entity);
+    if (world->locations[entity].top_right != -1) cells_remove_entity(&world->grid.cells[world->locations[entity].top_right], entity);
+
+    world->locations[entity].bottom_left = -1;
+    world->locations[entity].bottom_right = -1;
+    world->locations[entity].top_left = -1;
+    world->locations[entity].top_right = -1;
+
+}
+
 void cells_begin_track_entites(world_t* world) {
 
     for (entity_id_t i = 0; i < world->entities_count; i++) {
+
+        if (world->alive[i] == false) {
+            world->locations[i].bottom_left = -1;
+            world->locations[i].top_left = -1;
+            world->locations[i].bottom_right = -1;
+            world->locations[i].top_right = -1;
+            continue;
+        }
+
+        if (world->sizes[i].x > world->grid.cell_size.x) fprintf(stderr, "entity is too big. Max width of cell.\n");
+        if (world->sizes[i].y > world->grid.cell_size.y) fprintf(stderr, "entity is too big. Max height of cell.\n");
         
         Location* location = &world->locations[i];
 
@@ -129,6 +154,7 @@ void cells_begin_track_entites(world_t* world) {
         if (location->top_right != -1)
             cells_add_entity(world, &world->grid.cells[location->top_right], i);
     }
+
 }
 
 inline void cells_location_apply_change(world_t* world, entity_id_t entity, Location* current, int*c , Location* updated, int* u) {
