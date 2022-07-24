@@ -2,6 +2,7 @@
 #define INCLUDE_COLLISION_H
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <raylib.h>
 
@@ -38,16 +39,16 @@ inline bool is_separating_axis_rectangles(Position* axis, Position* r1, Position
 
 	for (int i = 1; i < 4; i++) {
 		float p1 = dot_product(axis, &r1[i]);
-		min1 = min(min1, p1);
-		max1 = max(max1, p1);
+		min1 = MIN(min1, p1);
+		max1 = MAX(max1, p1);
 
 		float p2 = dot_product(axis, &r2[i]);
-		min2 = min(min2, p2);
-		max2 = max(max2, p2);
+		min2 = MIN(min2, p2);
+		max2 = MAX(max2, p2);
 	}
 
 	if (max1 >= min2 && max2 >= min1) {
-		float distance = min(max2 - min1, max1 - min2);
+		float distance = MIN(max2 - min1, max1 - min2);
 		float d_squared = (distance / dot_product(axis, axis) + 1e-10f);
 		push->x = axis->x * d_squared;
 		push->y = axis->y * d_squared;
@@ -244,76 +245,91 @@ inline void find_collisions(world_t* world) {
 	}
 }
 
-inline bool find_closest_center_to_center(world_t* world, entity_id_t entity, EntityType filter, entity_id_t* closest_entity) {
-	
-	Position center = { world->positions[entity].x + world->sizes[entity].x / 2.0f, world->positions[entity].y + world->sizes[entity].y / 2.0f };
 
-	int bottom_index = cell_row_last(world, cell_row(world, world->locations[entity].bottom_left));
-	int top_index = world->locations[entity].top_left == -1 ? world->locations[entity].bottom_left : world->locations[entity].top_left;
+inline entity_id_t find_closest_in_cell(world_t* world, cell_t* cell, entity_id_t entity, EntityType filter, entity_id_t* closest_entity, float* closest_distance) {
 
-	top_index = cell_row_first(world, cell_row(world, top_index));
+	for (uint16_t i = 0; i < cell->count; i++) {
+		entity_id_t other = cell->entites[i];
+		if (other == entity) continue;
 
-	bool finish_row = false;
+		if (world->types[other] != filter) continue;
 
+		if (*closest_entity == entity) {
+			*closest_entity = other;
+			*closest_distance = min_distance_between_rects(&world->positions[entity], &world->sizes[entity], world->rotations[other], &world->positions[other], &world->sizes[other], world->rotations[other]);
+		}
+		else {
+			float cd = min_distance_between_rects(&world->positions[entity], &world->sizes[entity], world->rotations[other], &world->positions[other], &world->sizes[other], world->rotations[other]);
+			if (cd < *closest_distance) {
+				*closest_distance = cd;
+				*closest_entity = other;
+			}
+		}
+	}
+
+}
+
+
+inline bool find_closest(world_t* world, entity_id_t entity, EntityType filter, entity_id_t* closest_entity, float* closest_distance) {
 	*closest_entity = entity;
-	float squared_distance = 0.0f;
+	*closest_distance = 0;
 
-	while (bottom_index > 0 || top_index < world->grid.count) {
-		
-		if (bottom_index >= 0) {
-			cell_t* bottom_cell = &world->grid.cells[bottom_index];
-			for (uint16_t i = 0; i < bottom_cell->count; i++) {
-				entity_id_t other = bottom_cell->entites[i];
-				if (other == entity) continue;
+	int row = cell_row(world, world->locations[entity].bottom_left);
+	int col = cell_col(world, world->locations[entity].bottom_left);
+	int row_size = 2;
 
-				if (filter != ENTITY_NONE && world->types[other] != filter) continue;
+	int iter = 2;
 
-				Position otherCenter = { world->positions[other].x + world->sizes[other].x / 2.0f, world->positions[other].y + world->sizes[other].y / 2.0f };
-				Position offset = { otherCenter.x - center.x, otherCenter.y - center.y };
-				float distance_to_other = (offset.x * offset.x) + (offset.y * offset.y);
+	while (iter > 0) {
 
-				// No entity found yet
-				if (*closest_entity == entity || squared_distance > distance_to_other) {
-					*closest_entity = other;
-					squared_distance = distance_to_other;
-				}
+		for (int i = 0; i < row_size; i++) {
+
+			int c = col + i;
+			if (c < 0 || c >= world->grid.cols) continue;
+
+			//bottom
+			if (row >= 0) {
+				int index = row * world->grid.cols + c;
+				find_closest_in_cell(world, &world->grid.cells[index], entity, filter, closest_entity, closest_distance);
+			}
+
+			//top
+			if (row + row_size - 1 < world->grid.rows) {
+				int index = (row + row_size - 1) * world->grid.cols + c;
+				find_closest_in_cell(world, &world->grid.cells[index], entity, filter, closest_entity, closest_distance);
 			}
 		}
 
-		if (top_index <= world->grid.count - 1) {
-			cell_t* top_cell = &world->grid.cells[top_index];
-			for (uint16_t i = 0; i < top_cell->count; i++) {
-				entity_id_t other = top_cell->entites[i];
-				if (other == entity) continue;
+		for (int i = 0; i < row_size - 2; i++) {
 
-				if (filter != ENTITY_NONE && world->types[other] != filter) continue;
+			int r = row + 1 + i;
+			if (r >= world->grid.rows) break;
 
-				Position otherCenter = { world->positions[other].x + world->sizes[other].x / 2.0f, world->positions[other].y + world->sizes[other].y / 2.0f };
-				Position offset = { otherCenter.x - center.x, otherCenter.y - center.y };
-				float distance_to_other = (offset.x * offset.x) + (offset.y * offset.y);
+			if (r < 0) continue;
 
-				// No entity found yet
-				if (*closest_entity == entity || squared_distance > distance_to_other) {
-					*closest_entity = other;
-					squared_distance = distance_to_other;
-				}
+			// left
+			if (col >= 0) {
+				int index = r * world->grid.cols + col;
+				find_closest_in_cell(world, &world->grid.cells[index], entity, filter, closest_entity, closest_distance);
+			}
+
+			// right
+			if (col + row_size < world->grid.cols) {
+				int index = r * world->grid.cols + col + row_size;
+				find_closest_in_cell(world, &world->grid.cells[index], entity, filter, closest_entity, closest_distance);
 			}
 		}
 
-		if (bottom_index - 1 > 0 && bottom_index - 1 < cell_row_first(world, cell_row(world, bottom_index)) && *closest_entity != entity) {
-			if (finish_row) break;
-			else finish_row = true;
-		}
-		bottom_index--;
+		row_size += 2;
+		col--;
+		row--;
+		if (*closest_entity != entity) iter--;
 
-		if (top_index + 1 < world->grid.count && top_index + 1 > cell_row_last(world, cell_row(world, top_index)) && *closest_entity != entity) {
-			if (finish_row) break;
-			else finish_row = true;
-		}
-		top_index += 1;
+		if (row < 0 && row + row_size >= world->grid.rows) break;
 	}
 
 	return *closest_entity != entity;
+
 }
 
 #ifdef __cplusplus

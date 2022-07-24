@@ -183,7 +183,8 @@ void update_single_tower(world_t* world, float deltaTime) {
 				t->cooldown = 0.1f;
 
 				entity_id_t closest;
-				if (find_closest_center_to_center(world, 0, ENTITY_ZOMBIE, &closest)) {
+				float closest_distance;
+				if (find_closest(world, 0, ENTITY_ZOMBIE, &closest, &closest_distance)) {
 					spawn_tower_shot(world, (Position) { world->positions[closest].x, 10.0f });
 				}
 
@@ -268,7 +269,7 @@ LEVEL(single_tower) {
 
 	for (entity_id_t i = towers + 1; i < towers + maxTowerShots; i++) {
 		add_rectangle_entity(world, i, ENTITY_TOWER_SHOT, (Position) { 0, 0 }, (Size) { 1.0f, 1.0f }, false, BLUE);
-		world->velocities[i] = (Position){ 0.0f, 100.0f };
+		world->velocities[i] = (Position){ 0.0f, 150.0f };
 	}
 
 	for (entity_id_t i = towers + maxTowerShots; i < towers + maxTowerShots + zombies; i++) {

@@ -10,6 +10,15 @@
     During gameplay, no new memory is allocated, memory has to be preallocated.
     When a building is placed, a the first placeholder entity is replaced with a building.
 
+
+    TODO
+        - Find all collision inside of rectangle (Check all cells which approximate rectangle)
+        - Behaviour.c
+        - Collision filters + Collision Query Result
+        - Level Data
+
+
+	Maybe remove inline functions?
 */
 
 int main(void)
