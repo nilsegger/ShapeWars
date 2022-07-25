@@ -156,6 +156,8 @@ void draw_single_tower(world_t* world) {
 			draw_number(world, &world->positions[i], 20.0f, t->cooldown, GRAY);
 		}
 	}
+
+	draw_circle(world, &world->positions[world->level_data], 5.0f, GREEN);
 }
 
 inline void spawn_tower_shot(world_t* world, Position positon) {
@@ -172,6 +174,9 @@ inline void spawn_tower_shot(world_t* world, Position positon) {
 }
 
 void update_single_tower(world_t* world, float deltaTime) {
+
+	if (!IsKeyDown(32) && !IsKeyPressed(83)) return;
+
 	for (entity_id_t i = 0; i < world->entities_count; i++) {
 		if (world->alive[i] == false) continue;
 
@@ -186,6 +191,10 @@ void update_single_tower(world_t* world, float deltaTime) {
 				float closest_distance;
 				if (find_closest(world, 0, ENTITY_ZOMBIE, &closest, &closest_distance)) {
 					spawn_tower_shot(world, (Position) { world->positions[closest].x, 10.0f });
+					world->level_data = closest;
+				}
+				else {
+					world->level_data = 0;
 				}
 
 			}
@@ -261,6 +270,8 @@ LEVEL(single_tower) {
 	world->draw_func = draw_single_tower;
 	world->physics_func = update_single_tower;
 
+	world->level_data = 0;
+
 	/* TODO ADD CLEANUP FUNC */
 
 	add_rectangle_entity(world, 0, ENTITY_TOWER, (Position) { map.x / 2.0f - 9.0f, 10.0f }, (Size) { 18.0f, 18.0f }, true, BLACK);
@@ -275,6 +286,7 @@ LEVEL(single_tower) {
 	for (entity_id_t i = towers + maxTowerShots; i < towers + maxTowerShots + zombies; i++) {
 		add_rectangle_entity(world, i, ENTITY_ZOMBIE, (Position) { random(0, map.x - 5), random(map.y / 2.0f, map.y - 5) }, (Size) { 5.0f, 5.0f }, true, RED);
 		world->velocities[i] = (Position){ 0.0f, random(1, 8) };
+		//world->rotations[i] = (float)random(1, 360);
 	}
 
 	return world;

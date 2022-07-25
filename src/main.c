@@ -42,10 +42,11 @@ int main(void)
         ClearBackground(BLACK);
         float deltaTime = GetFrameTime();
 
-		if (world->physics_func != NULL && GetTime() - physics_timer_last >= physics_delta_time) {
+		/*if (world->physics_func != NULL && GetTime() - physics_timer_last >= physics_delta_time) {
 			world->physics_func(world, physics_delta_time);
 			physics_timer_last = GetTime();
-		}
+		}*/
+		world->physics_func(world, deltaTime);
 
 		BeginMode2D(world->camera);
 		world->draw_func(world);

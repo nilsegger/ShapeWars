@@ -87,6 +87,8 @@ typedef struct World {
 	void(*physics_func)(struct World*, float deltaTime);
 	void(*draw_func)(struct World*);
 
+	entity_id_t level_data;
+
 } world_t;
 
 void init_grid(Size map_size, Size cell_size, uint16_t maxEntitiesPerCell);

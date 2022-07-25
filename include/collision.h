@@ -246,7 +246,7 @@ inline void find_collisions(world_t* world) {
 }
 
 
-inline entity_id_t find_closest_in_cell(world_t* world, cell_t* cell, entity_id_t entity, EntityType filter, entity_id_t* closest_entity, float* closest_distance) {
+inline void find_closest_in_cell(world_t* world, cell_t* cell, entity_id_t entity, EntityType filter, entity_id_t* closest_entity, float* closest_distance) {
 
 	for (uint16_t i = 0; i < cell->count; i++) {
 		entity_id_t other = cell->entites[i];
@@ -256,10 +256,10 @@ inline entity_id_t find_closest_in_cell(world_t* world, cell_t* cell, entity_id_
 
 		if (*closest_entity == entity) {
 			*closest_entity = other;
-			*closest_distance = min_distance_between_rects(&world->positions[entity], &world->sizes[entity], world->rotations[other], &world->positions[other], &world->sizes[other], world->rotations[other]);
+			*closest_distance = min_distance_between_rects_squared(&world->positions[entity], &world->sizes[entity], world->rotations[entity], &world->positions[other], &world->sizes[other], world->rotations[other]);
 		}
 		else {
-			float cd = min_distance_between_rects(&world->positions[entity], &world->sizes[entity], world->rotations[other], &world->positions[other], &world->sizes[other], world->rotations[other]);
+			float cd = min_distance_between_rects_squared(&world->positions[entity], &world->sizes[entity], world->rotations[entity], &world->positions[other], &world->sizes[other], world->rotations[other]);
 			if (cd < *closest_distance) {
 				*closest_distance = cd;
 				*closest_entity = other;
@@ -278,7 +278,7 @@ inline bool find_closest(world_t* world, entity_id_t entity, EntityType filter, 
 	int col = cell_col(world, world->locations[entity].bottom_left);
 	int row_size = 2;
 
-	int iter = 2;
+	int iter = 1;
 
 	while (iter > 0) {
 

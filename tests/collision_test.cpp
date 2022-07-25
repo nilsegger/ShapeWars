@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "collision.h"
+#include "helpers.h"
 
 TEST(CollisionTests, RectangleCollision) {
 	Position positions[2]{};
@@ -45,3 +46,13 @@ TEST(CollisionTests, SideOfPoint) {
 	point = { 0.0f, -5.0f };
 	EXPECT_EQ(side_of_point(&point, &rect, &size), RECTANGLE_BOTTOM);
 }
+
+TEST(MathTests, PointToSegment) {
+	Position p = { 0.f, 0.f };
+	Position s1 = { -5.0f, 5.0f };
+	Position s2 = { 5.0f, 5.0f };
+
+	EXPECT_EQ(distance_point_to_segment(&p, &s1, &s2), 5.0f);
+}
+
+
