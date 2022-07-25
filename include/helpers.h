@@ -42,6 +42,23 @@ inline Position rotate_point(Position point, Position* pivot, float angle) {
 }
 
 inline void rotate_rectangle(Position* p, Size* s, float r, Position* bl, Position* br, Position* tl, Position* tr) {
+
+	if (r == 0.0f) {
+		bl->x = p->x;
+		bl->y = p->y;
+
+		tl->x = p->x;
+		tl->y = p->y + s->y;
+
+		tr->x = p->x + s->x;
+		tr->y = p->y + s->y;
+
+		br->x = p->x + s->x;
+		br->y = p->y;
+
+		return;
+	}
+
 	Position pivot = {p->x + (s->x / 2.0f), p->y + (s->y / 2.0f)};
 	*bl = rotate_point(*p, &pivot, r);
 	Position brp = { p->x + s->x, p->y };
@@ -64,7 +81,7 @@ inline float distance(const Position* p1, const Position* p2) {
 inline float distance_point_to_segment_squared(Position* p, Position* s1, Position* s2) {
 	// taken from https://stackoverflow.com/a/1501725/7539501
 	const float l2 = distance_squared(s1, s2);
-	if (l2 == 0.0f) return distance(p, s1);
+	if (l2 == 0.0f) return distance_squared(p, s1);
 
 	Position offset1 = { p->x - s1->x, p->y - s1->y };
 	Position offset2 = { s2->x - s1->x, s2->y - s1->y };
@@ -131,59 +148,6 @@ inline float min_distance_between_rects_squared(Position* p1, Size* s1, float r1
 	min_distance_point_to_segment_squared(&rectangle2[3], &rectangle1[3], &rectangle1[0], &min_distance);
 
 	return min_distance;
-
-
-	// Points of rectangles with lowest distance between each other
-	// min_index[0] < min_index[1]
-	int min_index1[2] = {0, 0};
-	int min_index2[2] = {0, 1};
-	float d[2] = {distance_squared(&rectangle1[0], &rectangle2[0]), distance_squared(&rectangle1[0], &rectangle2[1])};
-
-	if (d[1] < d[0]) {
-		min_index2[0] = 1;
-		min_index2[1] = 0;
-		float temp = d[0];
-		d[0] = d[1];
-		d[1] = temp;
-	}
-
-	for (int i = 0; i < 4; i++) {
-		for (int j = (i == 0 ? 2 : 0); j < 4; j++) {
-			float current_d = distance_squared(&rectangle1[i], &rectangle2[j]);
-			if (current_d < d[0]) {
-				min_index1[1] = min_index1[0];
-				min_index2[1] = min_index2[0];
-				d[1] = d[0];
-
-				d[0] = current_d;
-				min_index1[0] = i;
-				min_index2[0] = j;
-			}
-			else if (current_d < d[1]) {
-				d[1] = current_d;
-				min_index1[1] = i;
-				min_index2[1] = j;
-			}
-		}
-	}
-
-	Position* line_segment[2];
-	Position* corner;
-
-	printf("%d %d %d %d\n", min_index1[0], min_index1[1], min_index2[0], min_index2[1]);
-
-	if (min_index1[0] == min_index1[1]) {
-		corner = &rectangle1[min_index1[0]];
-		line_segment[0] = &rectangle2[min_index2[0]];
-		line_segment[1] = &rectangle2[min_index2[1]];
-	}
-	else {
-		corner = &rectangle1[min_index2[0]];
-		line_segment[0] = &rectangle1[min_index1[0]];
-		line_segment[1] = &rectangle1[min_index1[1]];
-	}
-
-	return distance_point_to_segment_squared(corner, line_segment[0], line_segment[1]);
 }
 
 

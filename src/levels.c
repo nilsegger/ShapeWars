@@ -286,7 +286,7 @@ LEVEL(single_tower) {
 	for (entity_id_t i = towers + maxTowerShots; i < towers + maxTowerShots + zombies; i++) {
 		add_rectangle_entity(world, i, ENTITY_ZOMBIE, (Position) { random(0, map.x - 5), random(map.y / 2.0f, map.y - 5) }, (Size) { 5.0f, 5.0f }, true, RED);
 		world->velocities[i] = (Position){ 0.0f, random(1, 8) };
-		//world->rotations[i] = (float)random(1, 360);
+		world->rotations[i] = (float)random(1, 360);
 	}
 
 	return world;
